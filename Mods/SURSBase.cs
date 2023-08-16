@@ -1,0 +1,123 @@
+﻿using MelonLoader;
+using UnityEngine;
+using VSLSignalisCodeBank;
+using System.IO;
+
+namespace SURS
+{
+    public class SURSBase : MelonMod
+    {
+        public override void OnUpdate()
+        {
+            if (GameObject.Find("__Prerequisites__") != null)
+            {
+                if (Input.GetKey(KeyCode.S) && Input.GetKey(KeyCode.R))
+                {
+                    MelonLoader.MelonLogger.Msg("SURS has Loaded");
+
+                    //Find the Ingame Objects We Wish to Change, this cluster is for objects related to Elsters Body or SURS Base
+                    GameObject PreReq = GameObject.Find("__Prerequisites__");
+                    GameObject CharOrigin = PreReq.transform.Find("Character Origin").gameObject;
+                    GameObject CharRoot = CharOrigin.transform.Find("Character Root").gameObject;
+                    GameObject EllieDef = CharRoot.transform.Find("Ellie_Default").gameObject;
+                    GameObject metarig = EllieDef.transform.Find("metarig").gameObject;
+                    GameObject Root = metarig.transform.Find("Root").gameObject;
+                    GameObject hips = Root.transform.Find("hips").gameObject;
+
+                    string modsFolder = MelonHandler.ModsDirectory;
+                    if (modsFolder == null)
+                    {
+                        MelonLoader.MelonLogger.Msg("MelonLoader Mods Folder Not Loading");
+                    }
+                    string sursLibraryFolder = Path.Combine(modsFolder, "SURSLibrary");
+                    if (sursLibraryFolder == null)
+                    {
+                        MelonLoader.MelonLogger.Msg("SURS Library Could Not Be Loaded, Check to make sure you set it up correctly");
+                    }
+                    if (Directory.Exists(sursLibraryFolder))
+                    {
+                        string elsterBodyPath = Path.Combine(sursLibraryFolder, "elster_body_texture.png");
+                        if (File.Exists(elsterBodyPath))
+                        {
+                            //This Uses the Old Functionality
+                            GameObject normalEllie = EllieDef.transform.Find("Normal").gameObject;
+                            byte[] imageData = File.ReadAllBytes(elsterBodyPath);
+                            Texture2D elsterBodyTexture = new Texture2D(2, 2);
+                            ImageConversion.LoadImage(elsterBodyTexture, imageData);
+                            GameObject body = normalEllie.transform.Find("Body").gameObject;
+                            SkinnedMeshRenderer renderer = body.GetComponent<SkinnedMeshRenderer>();
+                            if (renderer == null)
+                            {
+                                MelonLoader.MelonLogger.Msg("Body Render Not Found");
+                            }
+                            renderer.material.mainTexture = elsterBodyTexture;
+                        }
+
+                        string armoredellieBodyPath = Path.Combine(sursLibraryFolder, "elster_armored_texture.png");
+                        if (File.Exists(armoredellieBodyPath))
+                        {
+                            //Surs Could be Updated to a Function Method Base, However It has yet to be done so. 
+                            Texture2D armoredellieBodyTexture = SignalisCodeBank.SURSImageCall(armoredellieBodyPath);
+                            GameObject armoredEllie = EllieDef.transform.Find("Armored").gameObject;
+                            if (armoredEllie == null) { }
+                            GameObject body = armoredEllie.transform.Find("Body").gameObject;
+                            SkinnedMeshRenderer renderer = body.GetComponent<SkinnedMeshRenderer>();
+                            if (renderer == null)
+                            {
+                                MelonLoader.MelonLogger.Msg("Body Render Not Found");
+                            }
+                            renderer.material.mainTexture = armoredellieBodyTexture;
+                        }
+
+                        string isaPath = Path.Combine(sursLibraryFolder, "isa.png");
+                        if (File.Exists(isaPath))
+                        {
+                            Texture2D evaTexture = SignalisCodeBank.SURSImageCall(isaPath);
+                            GameObject evaEllie = EllieDef.transform.Find("Isa_Past").gameObject;
+                            GameObject body = evaEllie.transform.Find("Body").gameObject;
+                            SkinnedMeshRenderer renderer = body.GetComponent<SkinnedMeshRenderer>();
+                            if (renderer == null)
+                            {
+                                MelonLoader.MelonLogger.Msg("Body Render Not Found");
+                            }
+                            renderer.material.mainTexture = evaTexture;
+                        }
+
+                        string evaPath = Path.Combine(sursLibraryFolder, "eva.png");
+                        if (File.Exists(evaPath))
+                        {
+                            //New Functionality Usage 
+                            GameObject evaEllie = EllieDef.transform.Find("EVA").gameObject;
+                            string[] evaObjectNames = { "Body", "Helmet", "Visor", "Visor Layer2" };
+                            foreach (string gameObjectName in evaObjectNames)
+                            {
+                                GameObject gameObject = evaEllie.transform.Find(gameObjectName).gameObject;
+                                SURSTextureSet(File.Exists(evaPath), evaPath, gameObject);
+                            }
+                        }
+                        string crippledPath = Path.Combine(sursLibraryFolder, "crippled.png");
+                        string organsPath = Path.Combine(sursLibraryFolder, "organs.png");
+                        if (File.Exists(crippledPath) || (File.Exists(organsPath)))
+                        {
+                            GameObject crippledEllie = EllieDef.transform.Find("Crippled").gameObject;
+                            GameObject body = crippledEllie.transform.Find("Body").gameObject;
+                            SURSTextureSet((File.Exists(crippledPath)), crippledPath, crippledEllie);
+                            GameObject organsEllie = crippledEllie.transform.Find("Organs").gameObject;
+                            SURSTextureSet((File.Exists(organsPath)), organsPath, organsEllie);
+                        }
+                    }
+                }
+            }
+        }
+        public bool SURSTextureSet(bool state, string path, GameObject parent)
+        {
+            if (!state) {
+                return false;
+            }
+            Texture2D evaTexture = SignalisCodeBank.SURSImageCall(path);
+            SkinnedMeshRenderer renderer = parent.GetComponent<SkinnedMeshRenderer>();
+            renderer.material.mainTexture = evaTexture;
+            return true;
+        }
+    }
+}
