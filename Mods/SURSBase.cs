@@ -58,17 +58,22 @@ namespace SURS
                         string armoredellieBodyPath = Path.Combine(sursLibraryFolder, "elster_armored_texture.png");
                         if (File.Exists(armoredellieBodyPath))
                         {
-                            //Surs Could be Updated to a Function Method Base, However It has yet to be done so. 
-                            Texture2D armoredellieBodyTexture = SURSImageCall(armoredellieBodyPath);
-                            GameObject armoredEllie = EllieDef.transform.Find("Armored").gameObject;
-                            if (armoredEllie == null) { }
-                            GameObject body = armoredEllie.transform.Find("Body").gameObject;
-                            SkinnedMeshRenderer renderer = body.GetComponent<SkinnedMeshRenderer>();
-                            if (renderer == null)
+                            GameObject armoredEllie = EllieDef.transform.Find("Armored")?.gameObject;
+                            if (armoredEllie != null)
                             {
-                                MelonLoader.MelonLogger.Msg("Body Render Not Found");
+                                GameObject elliebody = armoredEllie.transform.Find("Body").gameObject;
+                                SURSTextureSet((File.Exists(armoredellieBodyPath)), armoredellieBodyPath, elliebody);
+                                GameObject hair1ellie = armoredEllie.transform.Find("Hair").gameObject;
+                                SURSTextureSet((File.Exists(armoredellieBodyPath)), armoredellieBodyPath, hair1ellie);
+                                GameObject hairEllie = armoredEllie.transform.Find("HairHead").gameObject;
+                                SURSTextureSet((File.Exists(armoredellieBodyPath)), armoredellieBodyPath, hairEllie);
+                                GameObject armoronEllie = armoredEllie.transform.Find("Armor").gameObject;
+                                SURSTextureSet(File.Exists(armoredellieBodyPath), armoredellieBodyPath, armoronEllie);
                             }
-                            renderer.material.mainTexture = armoredellieBodyTexture;
+                            else
+                            {
+                                MelonLoader.MelonLogger.Msg("Failed to find Armor Object");
+                            }
                         }
 
                         string isaPath = Path.Combine(sursLibraryFolder, "isa.png");
