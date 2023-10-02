@@ -1,131 +1,160 @@
-﻿using Il2CppSystem;
-using MelonLoader;
-using System.Xml.Linq;
+﻿using MelonLoader;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static RwActions.Layout;
 
 namespace Camera_Perspective_Mod
 {
     public class PerspectiveChange : MelonMod
     {
+        public SignalisCodeBank storage;
         public override void OnUpdate()
         {
-            if (SceneManager.GetActiveScene().name != "PEN_Hole")
+            if (storage != null)
             {
-                if (GameObject.Find("__Prerequisites__") != null)
+                storage = new SignalisCodeBank();
+            }
+            if (GameObject.Find("__Prerequisites__") != null && SceneManager.GetActiveScene().name != "PEN_Hole")
+            {
+                ///Basics Variables
+                GameObject PreReq = GameObject.Find("__Prerequisites__");
+                GameObject AngCamRig = PreReq.transform.Find("Angled Camera Rig").gameObject;
+                GameObject LocalSpace = AngCamRig.transform.Find("LocalSpace").gameObject;
+
+                //Char Variables
+                GameObject CharOrigin = PreReq.transform.Find("Character Origin").gameObject;
+                GameObject CharRoot = CharOrigin.transform.Find("Character Root").gameObject;
+
+                //FPS Cam
+                if (Input.GetKeyDown(KeyCode.F1))
                 {
-                    ///Basics Variables
-                    GameObject PreReq = GameObject.Find("__Prerequisites__");
-                    GameObject AngCamRig = PreReq.transform.Find("Angled Camera Rig").gameObject;
-                    GameObject LocalSpace = AngCamRig.transform.Find("LocalSpace").gameObject;
+                    Vector3 coords = new Vector3(0.3f, 8.4f, 2.1f);
+                    Quaternion position = Quaternion.Euler(0, 0, 0);
+                    if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false))
+                    {
+                        GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
+                        SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
+                    }
+                    else
+                    {
+                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                        SignalisCodeBank.CustomCamera(NewCamera, CharRoot, coords, position);
+                    }
+                    MelonLoader.MelonLogger.Msg("FPS Mode Enabled");
+                }
+                //DeadSpace Cam
+                if (Input.GetKeyDown(KeyCode.F2))
+                {
+                    Vector3 coords = new Vector3(3, 7.5f, -5f);
+                    Quaternion position = Quaternion.Euler(5, 355, 0);
+                    if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot))
+                    {
+                        GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
+                        SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
+                    }
+                    else
+                    {
+                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                        SignalisCodeBank.CustomCamera(NewCamera, CharRoot, coords, position);
+                    }
+                    MelonLoader.MelonLogger.Msg("DeadSpace Camera Mode Enabled");
+                }
+                //DMC Cam
+                if (Input.GetKeyDown(KeyCode.KeypadPlus))
+                {
+                    Vector3 coords = new Vector3(0.3491f, 10.4746f, -6.7382f);
+                    Quaternion position = Quaternion.Euler(13.7783f, 358.8838f, 359.6f);
+                    if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot))
+                    {
+                        GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
+                        SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
+                    }
+                    else
+                    {
+                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                        SignalisCodeBank.CustomCamera(NewCamera, CharRoot, coords, position);
+                    }
+                    MelonLoader.MelonLogger.Msg("DMC Camera Mode Enabled");
+                }
 
-                    //Char Variables
-                    GameObject CharOrigin = PreReq.transform.Find("Character Origin").gameObject;
-                    GameObject CharRoot = CharOrigin.transform.Find("Character Root").gameObject;
+                //Default Cam
+                if (Input.GetKeyDown(KeyCode.KeypadMinus) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                {
+                    SignalisCodeBank.CameraRestore(CharRoot, LocalSpace);
+                }
 
-                    //FPS Cam
-                    if (Input.GetKeyDown(KeyCode.F1))
-                    {
-                        Vector3 coords = new Vector3(0.3f, 8.4f, 2.1f);
-                        Quaternion position = Quaternion.Euler(0, 0, 0);
-                        if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot))
-                        {
-                            GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
-                            SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
-                        }
-                        else
-                        {
-                            GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                            SignalisCodeBank.CustomCamera(NewCamera, CharRoot, coords, position);
-                        }
-                        MelonLoader.MelonLogger.Msg("FPS Mode Enabled");
-                    }
-                    //DeadSpace Cam
-                    if (Input.GetKeyDown(KeyCode.F2))
-                    {
-                        Vector3 coords = new Vector3(3, 7.5f, -5f);
-                        Quaternion position = Quaternion.Euler(5, 355, 0);
-                        if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot))
-                        {
-                            GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
-                            SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
-                        }
-                        else
-                        {
-                            GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                            SignalisCodeBank.CustomCamera(NewCamera, CharRoot, coords, position);
-                        }
-                        MelonLoader.MelonLogger.Msg("DeadSpace Camera Mode Enabled");
-                    }
-                    //DMC Cam
-                    if (Input.GetKeyDown(KeyCode.KeypadPlus))
-                    {
-                        Vector3 coords = new Vector3(0.3491f, 10.4746f, -6.7382f);
-                        Quaternion position = Quaternion.Euler(13.7783f, 358.8838f, 359.6f);
-                        if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot))
-                        {
-                            GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
-                            SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
-                        }
-                        else
-                        {
-                            GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                            SignalisCodeBank.CustomCamera(NewCamera, CharRoot, coords, position);
-                        }
-                        MelonLoader.MelonLogger.Msg("DMC Camera Mode Enabled");
-                    }
 
-                    //Default Cam
-                    if (Input.GetKeyDown(KeyCode.KeypadMinus) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
-                    {
-                        SignalisCodeBank.CameraRestore(CharRoot, LocalSpace);
-                    }
+                //Camera Sensitivity Logic
+                if (Input.GetAxis("Mouse ScrollWheel") != 0)
+                {
+                    storage.mouseSensitivity += Input.GetAxis("Mouse ScrollWheel");
+                }
 
-                    //Add Camera Control Logic 
-                    if (Input.GetKey(KeyCode.UpArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                //Add Camera Control Logic 
+                //Arrow Keys Control Rotations, Mouse Control Pivots
+                if (Input.GetKey(KeyCode.UpArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                {
+                    GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                    SignalisCodeBank.CameraControl(NewCamera, false, true);
+                }
+                if (Input.GetKey(KeyCode.DownArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                {
+                    GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                    SignalisCodeBank.CameraControl(NewCamera, true, true);
+                }
+                if (Input.GetKey(KeyCode.LeftArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                {
+                    GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                    SignalisCodeBank.CameraControl(NewCamera, false, false); ;
+                }
+                if (Input.GetKey(KeyCode.RightArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                {
+                    GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                    SignalisCodeBank.CameraControl(NewCamera, true, false);
+                }
+                if (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false) && (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || Mathf.Abs(Input.GetAxis("Mouse Y")) > 0.01f))
+                {
+                    GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                    SignalisCodeBank.CameraPivot(NewCamera, Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+                }
+                if (Input.GetKeyDown(KeyCode.Space) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                {
+                    GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                    if (NewCamera.transform.localPosition == new Vector3(0.3f, 8.4f, 2.1f))
                     {
-                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                        SignalisCodeBank.CameraControl(NewCamera, false, true);
+                        //DMC
+                        NewCamera.transform.localRotation = Quaternion.Euler(13.7783f, 358.8838f, 359.6f);
                     }
-                    if (Input.GetKey(KeyCode.DownArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                    if (NewCamera.transform.localPosition == new Vector3(3, 7.5f, -5f))
                     {
-                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                        SignalisCodeBank.CameraControl(NewCamera, true, true);
+                        //FPS
+                        NewCamera.transform.localRotation = Quaternion.Euler(0, 0, 0);
                     }
-                    if (Input.GetKey(KeyCode.LeftArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
+                    if (NewCamera.transform.localPosition == new Vector3(0.3491f, 10.4746f, -6.7382f))
                     {
-                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                        SignalisCodeBank.CameraControl(NewCamera, false, false); ;
-                    }
-                    if (Input.GetKey(KeyCode.RightArrow) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
-                    {
-                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                        SignalisCodeBank.CameraControl(NewCamera, true, false);
-                    }
-                    if (Input.GetKeyDown(KeyCode.Space) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false))){
-                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                        if (NewCamera.transform.localPosition ==  new Vector3(0.3f, 8.4f, 2.1f)) 
-                        {
-                            //DMC
-                            NewCamera.transform.localRotation = Quaternion.Euler(13.7783f, 358.8838f, 359.6f);
-                        }
-                        if (NewCamera.transform.localPosition == new Vector3(3, 7.5f, -5f))
-                        {
-                            //FPS
-                            NewCamera.transform.localRotation = Quaternion.Euler(0,0,0);
-                        }
-                        if (NewCamera.transform.localPosition == new Vector3(0.3491f, 10.4746f, -6.7382f))
-                        {
-                            //DeadSpace
-                            NewCamera.transform.localRotation = Quaternion.Euler(5, 355, 0);
-                        }
+                        //DeadSpace
+                        NewCamera.transform.localRotation = Quaternion.Euler(5, 355, 0);
                     }
                 }
+                
+                //Error Handling
+                /*if(CharRoot.active == false && !SignalisCodeBank.GOErrorCatch("Main Camera", PreReq, false))
+                {
+                    CharRoot.SetActive(true);
+                    if (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false))
+                    {
+                        MelonLoader.MelonLogger.Msg("Error 147, Character Object is Disabled, Restoring Main Camera");
+                        GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
+                        SignalisCodeBank.CameraRestore(CharRoot, NewCamera);
+                        CharRoot.SetActive(false);
+                    };
+                }*/
             }
         }
     }
     public class SignalisCodeBank
     {
+        public float mouseSensitivity = 1.0f;
         public static void CustomCamera(GameObject MainCamera, GameObject CharRoot, Vector3 coords, Quaternion position, bool initialize = false)
         {
             CameraToggle(MainCamera, CharRoot, initialize);
@@ -169,6 +198,18 @@ namespace Camera_Perspective_Mod
             }
 
         }
+        public static void CameraPivot(GameObject Camera, float pivotAngle, float glanceAngle)
+        {
+            // Create Quaternions for the desired rotation angles.
+            Quaternion pivotRotation = Quaternion.Euler(0, pivotAngle, 0);
+            Quaternion glanceRotation = Quaternion.Euler(glanceAngle, 0, 0);
+
+            // Combine the two rotations using Quaternion multiplication.
+            Quaternion newRotation = pivotRotation * glanceRotation;
+
+            // Apply the new rotation to the GameObject's local rotation.
+            Camera.transform.rotation *= newRotation;
+        }
         public static void CameraRestore(GameObject CharRoot, GameObject LocalSpace)
         {
             GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
@@ -188,7 +229,7 @@ namespace Camera_Perspective_Mod
             {
                 if (logger)
                 {
-                    MelonLoader.MelonLogger.Msg("Error", ObjectName, "Not Found");
+                    MelonLoader.MelonLogger.Msg("Error" + ObjectName + " Not Found");
                 }
                 return false;
             }
