@@ -37,6 +37,7 @@ namespace SURS
                     if (Directory.Exists(sursLibraryFolder))
                     {
                         string elsterBodyPath = Path.Combine(sursLibraryFolder, "elster_body_texture.png");
+                        string elsterEmission = Path.Combine(sursLibraryFolder, "elster_body_texture_emit.png");
                         if (File.Exists(elsterBodyPath))
                         {
                             GameObject normalEllie = EllieDef.transform.Find("Normal")?.gameObject;
@@ -44,10 +45,13 @@ namespace SURS
                             {
                                 GameObject elliebody = normalEllie.transform.Find("Body").gameObject;
                                 SURSTextureSet((File.Exists(elsterBodyPath)), elsterBodyPath, elliebody);
+                                SURSTextureSet(File.Exists(elsterEmission), elsterBodyPath, elliebody, true);
                                 GameObject hair1ellie = normalEllie.transform.Find("Hair").gameObject;
                                 SURSTextureSet((File.Exists(elsterBodyPath)), elsterBodyPath, hair1ellie);
+                                SURSTextureSet(File.Exists(elsterEmission), elsterBodyPath, hair1ellie, true);
                                 GameObject hairEllie = normalEllie.transform.Find("HairHead").gameObject;
                                 SURSTextureSet((File.Exists(elsterBodyPath)), elsterBodyPath, hairEllie);
+                                SURSTextureSet(File.Exists(elsterEmission), elsterBodyPath, hairEllie, true);
                             }
                             else
                             {
@@ -56,6 +60,7 @@ namespace SURS
                         }
 
                         string armoredellieBodyPath = Path.Combine(sursLibraryFolder, "elster_armored_texture.png");
+                        string elsterArmorPath = Path.Combine(sursLibraryFolder, "elster_armor_plate.png");
                         if (File.Exists(armoredellieBodyPath))
                         {
                             GameObject armoredEllie = EllieDef.transform.Find("Armored")?.gameObject;
@@ -68,7 +73,7 @@ namespace SURS
                                 GameObject hairEllie = armoredEllie.transform.Find("HairHead").gameObject;
                                 SURSTextureSet((File.Exists(armoredellieBodyPath)), armoredellieBodyPath, hairEllie);
                                 GameObject armoronEllie = armoredEllie.transform.Find("Armor").gameObject;
-                                SURSTextureSet(File.Exists(armoredellieBodyPath), armoredellieBodyPath, armoronEllie);
+                                SURSTextureSet(File.Exists(elsterArmorPath), elsterArmorPath, armoronEllie);
                             }
                             else
                             {
@@ -129,37 +134,76 @@ namespace SURS
         }
         public static Material TextureFind(GameObject desiredObject)
         {
-            //Used in mods that swap textures without use of SURS
-            SkinnedMeshRenderer renderer = desiredObject.GetComponent<SkinnedMeshRenderer>();
-            if (renderer != null)
+            try
             {
-                MelonLoader.MelonLogger.Msg("Texture Loaded");
-                Material material = renderer.material;
-                return material;
+                //Used in mods that swap textures without use of SURS
+                SkinnedMeshRenderer renderer = desiredObject.GetComponent<SkinnedMeshRenderer>();
+                if (renderer != null)
+                {
+                    MelonLoader.MelonLogger.Msg("Texture Loaded");
+                    Material material = renderer.material;
+                    return material;
+                }
+                else
+                {
+                    MelonLoader.MelonLogger.Msg("Failed to Find Texture");
+                    return null;
+                }
             }
-            else
+            catch
             {
+                MelonLoader.MelonLogger.Msg("Failed to Find Texture, Critical Failure");
                 return null;
             }
         }
-        public static bool SURSTextureSet(bool state, string path, GameObject parent)
+        public static bool SURSTextureSet(bool state, string path, GameObject parent, bool emission = false)
         {
-            if (!state)
+            try
             {
+                if (!state)
+                {
+                    return false;
+                }
+                Texture2D evaTexture = SURSImageCall(path);
+                SkinnedMeshRenderer renderer = parent.GetComponent<SkinnedMeshRenderer>();
+                evaTexture.filterMode = FilterMode.Point;
+                if (emission)
+                {
+                    renderer.material.SetTexture("_EmissionMap", evaTexture);
+                    return true;
+                }
+                else
+                {
+                    renderer.material.mainTexture = evaTexture;
+                }
+                return true;
+            }
+            catch
+            {
+                if (!state)
+                {
+                    MelonLogger.Msg("Failed to Call Texture due to State Failure");
+                    return false;
+                }
+                MelonLoader.MelonLogger.Msg("Failed to Set Texture, Critical Failure");
                 return false;
             }
-            Texture2D evaTexture = SURSImageCall(path);
-            SkinnedMeshRenderer renderer = parent.GetComponent<SkinnedMeshRenderer>();
-            renderer.material.mainTexture = evaTexture;
-            return true;
         }
         public static Texture2D SURSImageCall(string filename)
         {
-            //Used in SURS (Signalis Universal ReSkin Mod)
-            byte[] imageData = System.IO.File.ReadAllBytes(filename);
-            Texture2D SURStexture = new Texture2D(2, 2);
-            ImageConversion.LoadImage(SURStexture, imageData);
-            return SURStexture;
+            try
+            {
+                //Used in SURS (Signalis Universal ReSkin Mod)
+                byte[] imageData = System.IO.File.ReadAllBytes(filename);
+                Texture2D SURStexture = new Texture2D(2, 2);
+                ImageConversion.LoadImage(SURStexture, imageData);
+                return SURStexture;
+            }
+            catch
+            {
+                MelonLogger.Msg("Failed to Call Image, Critical Failure");
+                return null;
+            }
         }
     }
 }
