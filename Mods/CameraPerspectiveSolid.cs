@@ -1,7 +1,6 @@
 ﻿using MelonLoader;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using static RwActions.Layout;
 
 namespace Camera_Perspective_Mod
 {
@@ -10,7 +9,7 @@ namespace Camera_Perspective_Mod
         public SignalisCodeBank storage;
         public override void OnUpdate()
         {
-            if (storage != null)
+            if (storage == null)
             {
                 storage = new SignalisCodeBank();
             }
@@ -47,7 +46,7 @@ namespace Camera_Perspective_Mod
                 {
                     Vector3 coords = new Vector3(3, 7.5f, -5f);
                     Quaternion position = Quaternion.Euler(5, 355, 0);
-                    if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot))
+                    if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false))
                     {
                         GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
                         SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
@@ -64,7 +63,7 @@ namespace Camera_Perspective_Mod
                 {
                     Vector3 coords = new Vector3(0.3491f, 10.4746f, -6.7382f);
                     Quaternion position = Quaternion.Euler(13.7783f, 358.8838f, 359.6f);
-                    if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot))
+                    if (!SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false))
                     {
                         GameObject MainCamera = LocalSpace.transform.Find("Main Camera").gameObject;
                         SignalisCodeBank.CustomCamera(MainCamera, CharRoot, coords, position);
@@ -87,7 +86,11 @@ namespace Camera_Perspective_Mod
                 //Camera Sensitivity Logic
                 if (Input.GetAxis("Mouse ScrollWheel") != 0)
                 {
-                    storage.mouseSensitivity += Input.GetAxis("Mouse ScrollWheel");
+                    storage.mouseSensitivity += (Input.GetAxis("Mouse ScrollWheel"))/5;
+                    if(storage.mouseSensitivity < 0)
+                    {
+                        storage.mouseSensitivity = 0;
+                    }
                 }
 
                 //Add Camera Control Logic 
@@ -115,7 +118,7 @@ namespace Camera_Perspective_Mod
                 if (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false) && (Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f || Mathf.Abs(Input.GetAxis("Mouse Y")) > 0.01f))
                 {
                     GameObject NewCamera = CharRoot.transform.Find("Main Camera").gameObject;
-                    SignalisCodeBank.CameraPivot(NewCamera, Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+                    SignalisCodeBank.CameraPivot(storage, NewCamera, Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
                 }
                 if (Input.GetKeyDown(KeyCode.Space) && (SignalisCodeBank.GOErrorCatch("Main Camera", CharRoot, false)))
                 {
@@ -196,19 +199,13 @@ namespace Camera_Perspective_Mod
                 customRotate.y += degreeChange;
                 MainCamera.transform.localRotation = customRotate;
             }
-
         }
-        public static void CameraPivot(GameObject Camera, float pivotAngle, float glanceAngle)
+        public static void CameraPivot(SignalisCodeBank Storage, GameObject Camera, float pivotAngle, float glanceAngle)
         {
-            // Create Quaternions for the desired rotation angles.
-            Quaternion pivotRotation = Quaternion.Euler(0, pivotAngle, 0);
-            Quaternion glanceRotation = Quaternion.Euler(glanceAngle, 0, 0);
-
-            // Combine the two rotations using Quaternion multiplication.
-            Quaternion newRotation = pivotRotation * glanceRotation;
-
-            // Apply the new rotation to the GameObject's local rotation.
-            Camera.transform.rotation *= newRotation;
+            Quaternion horizontalRotation = Quaternion.Euler(0, (Storage.mouseSensitivity * pivotAngle), 0);
+            Quaternion verticalRotation = Quaternion.Euler((Storage.mouseSensitivity * -glanceAngle), 0, 0);
+            Camera.transform.rotation *= horizontalRotation;
+            Camera.transform.localRotation *= verticalRotation;
         }
         public static void CameraRestore(GameObject CharRoot, GameObject LocalSpace)
         {
@@ -229,7 +226,7 @@ namespace Camera_Perspective_Mod
             {
                 if (logger)
                 {
-                    MelonLoader.MelonLogger.Msg("Error" + ObjectName + " Not Found");
+                    MelonLoader.MelonLogger.Msg("Error " + ObjectName + " Not Found");
                 }
                 return false;
             }
