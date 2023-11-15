@@ -23,6 +23,7 @@ namespace SigiMultiplayer
         public Quaternion r;
         public List<bool> checkers;
         public string OtherEllieScene;
+        public List<string> MessageCollection;
 
         //Server Variables
         public NetServer server;
@@ -308,7 +309,7 @@ namespace SigiMultiplayer
                         {
                             MelonLogger.Msg("Failure Prior to 309 due to Storage Postional Storing");
                         }
-                        CheckerInitalize(storage);
+                        //CheckerInitalize(storage);
                         MelonLogger.Msg("Ellie Established");
                     }
                     else
@@ -326,7 +327,6 @@ namespace SigiMultiplayer
                 }
                 storage.active = true;
             }
-
             //When Mod is True Do the Following
             if (storage.active)
             {
@@ -336,25 +336,26 @@ namespace SigiMultiplayer
                     storage.active = false;
                     return;
                 }
-
                 try {
                     //Sending Messages
-                    List<string> messageCollection = new List<string>();
-                    AddMessages(messageCollection, storage); //Creation Collection of Messages
+                    if(storage.MessageCollection == null) { storage.MessageCollection = new List<string>(); }
+                    AddMessages(storage); //Creation Collection of Messages
 
                     if (storage.server != null)
                     {
-                        foreach (string msg in messageCollection)
+                        if(storage.MessageCollection.Count != 0)
                         {
-                            NetOutgoingMessage message = storage.server.CreateMessage();
-                            message.Write(msg);
-                            foreach (NetConnection clientConnection in storage.server.Connections)
+                            foreach (string msg in storage.MessageCollection)
                             {
-                                storage.server.SendMessage(message, clientConnection, NetDeliveryMethod.ReliableOrdered);
+                                NetOutgoingMessage message = storage.server.CreateMessage();
+                                message.Write(msg);
+                                foreach (NetConnection clientConnection in storage.server.Connections)
+                                {
+                                    storage.server.SendMessage(message, clientConnection, NetDeliveryMethod.ReliableOrdered);
+                                }
                             }
                         }
                     }
-
                     // Receiving messages
                     if (storage.server == null)
                     {
@@ -383,7 +384,144 @@ namespace SigiMultiplayer
             }
         }
 
-        //Handles Reading Messages from Server
+        //Initalization - Checkers
+        public void CheckerInitalize(Storage storage)
+        {
+            List<string> BSend = new List<string>();
+            storage.checkers = new List<bool>();
+            GameObject Flashlight = storage.EllieMain.transform.Find("FlashLightHolder").gameObject;
+            BoolInternal(Flashlight, 1, storage.checkers, BSend);
+            /*PlayerAttack playerAttack = (PlayerAttack)storage.Prerequisties.GetComponentByName("PlayerAttack");
+            BoolInternal(playerAttack.aiming, 2, storage.checkers, BSend);*/
+
+            //Handles The Rest of Initalization
+            if (storage.host)
+            {
+                foreach (string msg in BSend)
+                {
+                    NetOutgoingMessage message = storage.server.CreateMessage();
+                    message.Write(msg);
+                    foreach (NetConnection clientConnection in storage.server.Connections)
+                    {
+                        storage.server.SendMessage(message, clientConnection, NetDeliveryMethod.ReliableOrdered);
+                        Coroutine(Storage.DelayOneFrame());
+                    }
+                }
+            }
+
+
+        }
+
+        //Central Runtime - Sending Messages
+        public static void AddMessages(Storage storage)
+        {
+            /*string mvalue = CheckMessage(storage);
+            if (mvalue != null)
+            {
+                string value = ("D:" + mvalue);
+                storage.MessageCollection.Add(value);
+            }*/
+            List<Vector3> vvalue = CheckVector(storage);
+            if (vvalue != null || vvalue.Count != 0)
+            {
+                foreach (Vector3 vecvalue in vvalue)
+                {
+                    string value = ("V:" + vecvalue.ToString());
+                    storage.MessageCollection.Add(value);
+                }
+            }
+            List<Quaternion> qvalue = CheckQuaternion(storage);
+            if (qvalue != null || qvalue.Count != 0)
+            {
+                foreach (Quaternion quatervalue in qvalue)
+                {
+                    string value = ("Q:" + quatervalue.ToString());
+                    storage.MessageCollection.Add(value);
+                }
+            }
+            List<string> bkeyvalue = CheckBool(storage);
+            if (bkeyvalue != null || bkeyvalue.Count != 0)
+            {
+                foreach (string fkey in bkeyvalue)
+                {
+                    string value = ("B:" + fkey);
+                    storage.MessageCollection.Add(value);
+                }
+            }
+        }
+        public static string CheckMessage(Storage storage)
+        {
+            if (storage.debugmessage == "" || storage.debugmessage == null)
+            {
+                return null;
+            }
+            else
+            {
+                return storage.debugmessage;
+            }
+        }
+        public static List<Vector3> CheckVector(Storage storage)
+        {
+            try
+            {
+                List<Vector3> VList = new List<Vector3>();
+                Vector3 e = storage.EllieMain.transform.position;
+                Vector3 l = storage.l;
+                if (e.x != l.x || e.y != l.y || e.z != l.z)
+                {
+                    VList.Add(e);
+                    storage.l = e;
+                    return VList;
+                }
+                else
+                {
+                    //If there is no change, send nothing, return null so no message is sent
+                    return null;
+                }
+            }
+            catch
+            {
+                MelonLogger.Msg("Failure on 453-Check Vector");
+                return null;
+            }
+        }
+        public static List<Quaternion> CheckQuaternion(Storage storage)
+        {
+            try
+            {
+                List<Quaternion> QList = new List<Quaternion>();
+                Quaternion e = storage.EllieClone.transform.rotation;
+                Quaternion r = storage.r;
+                if (e.x != r.x || e.y != r.y || e.z != r.z)
+                {
+                    QList.Add(e);
+                    storage.r = e;
+                    return QList;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch
+            {
+                MelonLogger.Msg("Failure on 487-Check Quaternion");
+                return null;
+            }
+
+        }
+        public static List<string> CheckBool(Storage storage)
+        {
+            /*
+            List<string> BList = new List<string>();
+            BoolInternal(storage.EllieClone.transform.Find("FlashLightHolder").gameObject, storage, 1, BList);
+            PlayerAttack playerAttack = (PlayerAttack)storage.Prerequisties.GetComponentByName("PlayerAttack");
+            BoolInternal(playerAttack.aiming, storage, 2, BList);
+            WeaponHandler(playerAttack.weapon.name, storage, BList);
+            return BList;*/
+            return null;
+        }
+        //Central Runtime - Handling Messages
         public static void HandleMessage(string message, Storage storage)
         {
             if (message.StartsWith("D:"))
@@ -481,7 +619,6 @@ namespace SigiMultiplayer
                 MelonLoader.MelonLogger.Msg("Server Recieved Unhandled Logic " + message);
             }
         }
-
         public static void ApplyBool(bool boolean, int tag, Storage storage)
         {
             switch (tag)
@@ -495,92 +632,7 @@ namespace SigiMultiplayer
                     break;
             }
         }
-
-        //Handles Adding Messages
-        public static void AddMessages(List<string> messages, Storage storage)
-        {
-            string mvalue = CheckMessage(storage);
-            if (mvalue != null)
-            {
-                string value = ("D:" + mvalue);
-                messages.Add(value);
-            }
-            List<Vector3> vvalue = CheckVector(storage);
-            if (vvalue != null)
-            {
-                foreach (Vector3 vecvalue in vvalue)
-                {
-                    string value = ("V:" + vecvalue.ToString());
-                    messages.Add(value);
-                }
-            }
-            List<Quaternion> qvalue = CheckQuaternion(storage);
-            if (qvalue != null)
-            {
-                foreach (Quaternion quatervalue in qvalue)
-                {
-                    string value = ("Q:" + quatervalue.ToString());
-                    messages.Add(value);
-                }
-            }
-            List<string> bkeyvalue = CheckBool(storage);
-            if (bkeyvalue != null)
-            {
-                foreach (string fkey in bkeyvalue)
-                {
-                    string value = ("B:" + fkey);
-                    messages.Add(value);
-                }
-            }
-        }
-
-        //Handles Checking if a Message Should be Sent
-        public static string CheckMessage(Storage storage)
-        {
-            if (storage.debugmessage == "")
-            {
-                return null;
-            }
-            else
-            {
-                return storage.debugmessage;
-            }
-        }
-        public static List<Vector3> CheckVector(Storage storage)
-        {
-            List<Vector3> VList = new List<Vector3>();
-            Vector3 e = storage.EllieMain.transform.position;
-            Vector3 l = storage.l;
-            if (e.x != l.x || e.y != l.y || e.z != l.z)
-            {
-                VList.Add(e);
-                storage.l = e;
-            }
-            return VList;
-        }
-
-        public static List<Quaternion> CheckQuaternion(Storage storage)
-        {
-            List<Quaternion> QList = new List<Quaternion>();
-            Quaternion e = storage.EllieClone.transform.rotation;
-            Quaternion r = storage.r;
-            if (e.x != r.x || e.y != r.y || e.z != r.z)
-            {
-                QList.Add(e);
-                storage.r = e;
-            }
-            return QList;
-        }
-        public static List<string> CheckBool(Storage storage)
-        {
-            List<string> BList = new List<string>();
-            BoolInternal(storage.EllieClone.transform.Find("FlashLightHolder").gameObject, storage, 1, BList);
-            PlayerAttack playerAttack = (PlayerAttack)storage.Prerequisties.GetComponentByName("PlayerAttack");
-            BoolInternal(playerAttack.aiming,storage,2, BList);
-            WeaponHandler(playerAttack.weapon.name,storage, BList);
-            return BList;
-        }
-
+        //Central Runtime - Boolean Checkers
         public static void WeaponHandler (string weaponname, Storage storage, List<string> BList)
         {
             //Weapons Occupy The 3-9 Range
@@ -608,7 +660,6 @@ namespace SigiMultiplayer
                     break;
             }
         }
-
         public static void BoolInternal(GameObject item, Storage storage, int index, List<string> BList)
         {
             if(item == null) return;
@@ -640,32 +691,6 @@ namespace SigiMultiplayer
             BSend.Add(state + ":0" + index);
             BList[index] = state;
         }
-
-
-        public void CheckerInitalize(Storage storage)
-        {
-            List<string> BSend = new List<string>();
-            storage.checkers = new List<bool>();
-            GameObject Flashlight = storage.EllieMain.transform.Find("FlashLightHolder").gameObject;
-            BoolInternal(Flashlight, 1, storage.checkers, BSend);
-            /*PlayerAttack playerAttack = (PlayerAttack)storage.Prerequisties.GetComponentByName("PlayerAttack");
-            BoolInternal(playerAttack.aiming, 2, storage.checkers, BSend);*/
-
-            //Handles The Rest of Initalization
-            if (storage.host)
-            {
-                foreach (string msg in BSend)
-                {
-                    NetOutgoingMessage message = storage.server.CreateMessage();
-                    message.Write(msg);
-                    foreach (NetConnection clientConnection in storage.server.Connections)
-                    {
-                        storage.server.SendMessage(message, clientConnection, NetDeliveryMethod.ReliableOrdered);
-                        Coroutine(Storage.DelayOneFrame());
-                    }
-                }
-            }
-        }
         //Handles End State
         public override void OnApplicationQuit()
         {
@@ -673,32 +698,7 @@ namespace SigiMultiplayer
             this.storage.server?.Shutdown("Exiting");
             this.storage.client?.Shutdown("Exiting");
         }
-
-        public static GameObject Duplicate(GameObject duplicate)
-        {
-            MethodInfo instantiateMethod;
-            UnityEngine.Object oreturnobject;
-            try
-            {
-                instantiateMethod = typeof(UnityEngine.Object).GetMethod("Instantiate", new[] { typeof(UnityEngine.Object) });
-                if (instantiateMethod == null) { MelonLogger.Msg("failed 699-1"); return null; }
-            }
-            catch { MelonLogger.Msg("failed 387"); return null; }
-            try
-            {
-                oreturnobject = (UnityEngine.Object)instantiateMethod.Invoke(null, new object[] { duplicate });
-                if (oreturnobject == null) { MelonLogger.Msg("failed 699-2"); return null; }
-            }
-            catch { MelonLogger.Msg("failed 392"); return null; }
-            try
-            {
-                GameObject returnObject = (GameObject)oreturnobject;
-                if (returnObject == null) { MelonLogger.Msg("failed 699-3"); MelonLogger.Msg("Type of oreturnobject: " + oreturnobject.GetType().ToString()); ; return null;  }
-                return returnObject;
-            }
-            catch { MelonLogger.Msg("failed 399"); return null; }
-        }
-
+        //Glue
         public void Coroutine(IEnumerable coroutinetoStart)
         {
             MethodInfo startCoroutineMethod;
