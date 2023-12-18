@@ -4,9 +4,10 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Collections;
 using System.Threading;
+using UnityEngine.SceneManagement;
+using System.Runtime.Serialization.Formatters;
 
 namespace SigiMultiplayer
 {
@@ -14,6 +15,7 @@ namespace SigiMultiplayer
     {
         //Variables for Mod
         public bool start = true;
+        public bool failsafe;
         public bool active = false; //Defines Active State of Mod
         public string debugmessage = "";
         public GameObject EllieClone;
@@ -21,8 +23,6 @@ namespace SigiMultiplayer
         public GameObject EllieMain;
         public Vector3 l;
         public Quaternion r;
-        public List<bool> checkers;
-        public string OtherEllieScene;
         public List<string> MessageCollection;
 
         //Server Variables
@@ -30,19 +30,14 @@ namespace SigiMultiplayer
         public NetClient client;
         public NetPeerConfiguration config;
 
+        //Boolean Variables
+        public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall" }; //we do not need rooms without boolean values
+        public List<bool> BooleanList = new List<bool>() { false, false, false};
+
         //Readable Server Variables
         public bool host;
         public int ServerPort;
         public string ServerIP;
-
-        //state variable
-        public bool failsafe;
-
-        public static IEnumerable DelayOneFrame()
-        {
-            yield return null;
-        }
-
     }
     public class SignalisMultiplayer : MelonMod
     {
@@ -75,13 +70,14 @@ namespace SigiMultiplayer
                             storage.ServerPort = portValue;
                             MelonLogger.Msg("Port Value Initalized");
                         }
-                        if (lines[2] == "your ip here" || lines[2] == "")
-                        {
-                            MelonLogger.Msg("ServerIP Value is Not Set ");
+                        if (lines[2] == "your ip here" || lines[2] == "" || lines[2].Length >= 8)
+                        { 
+                            MelonLogger.Msg("ServerIP Value is Not Set or is incorrectly set");
                             storage.failsafe = true;
                         }
                         else
                         {
+                            //ensure that ip used is IPV4
                             storage.ServerIP = lines[2];
                             MelonLogger.Msg("ServerIP Value Initalized");
                         }
@@ -384,45 +380,11 @@ namespace SigiMultiplayer
             }
         }
 
-        //Initalization - Checkers
-        public void CheckerInitalize(Storage storage)
-        {
-            List<string> BSend = new List<string>();
-            storage.checkers = new List<bool>();
-            GameObject Flashlight = storage.EllieMain.transform.Find("FlashLightHolder").gameObject;
-            BoolInternal(Flashlight, 1, storage.checkers, BSend);
-            /*PlayerAttack playerAttack = (PlayerAttack)storage.Prerequisties.GetComponentByName("PlayerAttack");
-            BoolInternal(playerAttack.aiming, 2, storage.checkers, BSend);*/
-
-            //Handles The Rest of Initalization
-            if (storage.host)
-            {
-                foreach (string msg in BSend)
-                {
-                    NetOutgoingMessage message = storage.server.CreateMessage();
-                    message.Write(msg);
-                    foreach (NetConnection clientConnection in storage.server.Connections)
-                    {
-                        storage.server.SendMessage(message, clientConnection, NetDeliveryMethod.ReliableOrdered);
-                        Coroutine(Storage.DelayOneFrame());
-                    }
-                }
-            }
-
-
-        }
-
         //Central Runtime - Sending Messages
         public static void AddMessages(Storage storage)
         {
-            /*string mvalue = CheckMessage(storage);
-            if (mvalue != null)
-            {
-                string value = ("D:" + mvalue);
-                storage.MessageCollection.Add(value);
-            }*/
             List<Vector3> vvalue = CheckVector(storage);
-            if (vvalue != null || vvalue.Count != 0)
+            if (vvalue != null)
             {
                 foreach (Vector3 vecvalue in vvalue)
                 {
@@ -431,7 +393,7 @@ namespace SigiMultiplayer
                 }
             }
             List<Quaternion> qvalue = CheckQuaternion(storage);
-            if (qvalue != null || qvalue.Count != 0)
+            if (qvalue != null)
             {
                 foreach (Quaternion quatervalue in qvalue)
                 {
@@ -439,25 +401,14 @@ namespace SigiMultiplayer
                     storage.MessageCollection.Add(value);
                 }
             }
-            List<string> bkeyvalue = CheckBool(storage);
-            if (bkeyvalue != null || bkeyvalue.Count != 0)
+            List<string> bkeyvalue = BooleanChecker(storage);
+            if (bkeyvalue != null)
             {
                 foreach (string fkey in bkeyvalue)
                 {
                     string value = ("B:" + fkey);
                     storage.MessageCollection.Add(value);
                 }
-            }
-        }
-        public static string CheckMessage(Storage storage)
-        {
-            if (storage.debugmessage == "" || storage.debugmessage == null)
-            {
-                return null;
-            }
-            else
-            {
-                return storage.debugmessage;
             }
         }
         public static List<Vector3> CheckVector(Storage storage)
@@ -510,16 +461,89 @@ namespace SigiMultiplayer
             }
 
         }
-        public static List<string> CheckBool(Storage storage)
+        public static List<string> BooleanChecker(Storage storage)
         {
-            /*
-            List<string> BList = new List<string>();
-            BoolInternal(storage.EllieClone.transform.Find("FlashLightHolder").gameObject, storage, 1, BList);
-            PlayerAttack playerAttack = (PlayerAttack)storage.Prerequisties.GetComponentByName("PlayerAttack");
-            BoolInternal(playerAttack.aiming, storage, 2, BList);
-            WeaponHandler(playerAttack.weapon.name, storage, BList);
-            return BList;*/
-            return null;
+            List<string> InternalList = new List<string>();
+            string name = SceneManager.GetActiveScene().name;
+            switch (name)
+            {
+                case "PEN_Wreck":
+                    int roomname = RoomChecker(storage.PENWreckRooms, storage);
+                    BooleanChecker(1, roomname, InternalList, storage);
+                    break;
+                case "PEN_Hole":
+                    //no boolean cases here :D
+                    break;
+                default:
+                    break;
+            }
+            return InternalList;
+        }
+        public static int RoomChecker(List<string> secondarylist, Storage storage)
+        {
+            foreach (string s in secondarylist)
+            {
+                if (GameObject.Find(s) != null)
+                {
+                    //nested this just incase it bugs out as it may since we are testing for null
+                    if (GameObject.Find(s).transform.Find("Chunk").gameObject.active == true)
+                    {
+                        //we need to export out s here, this finds s index
+                        return storage.PENWreckRooms.IndexOf(s); //this isnt flawless, and may interfere with other things in export requiring reformatting 
+                    }
+                }
+            }
+            return 0;
+        }
+        public static void BooleanChecker(int index, int RoomName, List<string> InternalList, Storage storage )
+        {
+            switch (index)
+            {
+                case 1:
+                    switch (RoomName)
+                    {
+                        case 0:
+                            //Cryopod
+                            if (!storage.BooleanList[0])
+                            {
+                                PEN_Cryo Cryo = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject.transform.Find("Cryo").gameObject.transform.GetComponent<PEN_Cryo>();
+                                storage.BooleanList[0] = Cryo.opened; //this is set true when the value is true
+                                if (storage.BooleanList[0])
+                                {
+                                    InternalList.Add("0,0");
+                                }
+                            }
+                            break;
+                        case 1:
+                            //Cockpit
+                            if (!storage.BooleanList[1])
+                            {
+                                GameObject Cockpit = GameObject.Find("Events").gameObject.transform.Find("Pen_CockpitEvent3D").gameObject.transform.Find("Interactions").gameObject;
+                                if (Cockpit.transform.Find("PhotoPickup") == null)
+                                {
+                                    storage.BooleanList[1] = true;
+                                    InternalList.Add("1,0");
+                                };
+                            }
+                            break;
+                        case 2:
+                            //Ductape
+                            if (!storage.BooleanList[2])
+                            {
+                                GameObject Ducttape = GameObject.Find("Events").gameObject.transform.Find("PEN_PC").gameObject;
+                                if(Ducttape.transform.Find("TapePickup") == null)
+                                {
+                                    storage.BooleanList[2] = true;
+                                    InternalList.Add("2,0");
+                                }
+                            }
+                            break;
+                        default: break;
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
         //Central Runtime - Handling Messages
         public static void HandleMessage(string message, Storage storage)
@@ -624,72 +648,40 @@ namespace SigiMultiplayer
             switch (tag)
             {
                 case 1:
-                    Transform transform = storage.EllieClone.transform.Find("FlashLightHolder");
-                    if (transform != null)
+                    if (!storage.BooleanList[0])
                     {
-                        transform.gameObject.SetActive(boolean);
+                        PEN_Cryo Cryo = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject.transform.Find("Cryo").gameObject.transform.GetComponent<PEN_Cryo>();
+                        Cryo.Open(); //Plays Cutscene Fixes Boolean Mismatch
+                        storage.BooleanList[0] = true; //this is set true when the value is true
                     }
                     break;
-            }
-        }
-        //Central Runtime - Boolean Checkers
-        public static void WeaponHandler (string weaponname, Storage storage, List<string> BList)
-        {
-            //Weapons Occupy The 3-9 Range
-            for(int i = 3; i < 10; i++)
-            {
-                storage.checkers[i] = false;
-            }
-            switch(weaponname)
-            {
-                case "SMGWeapon":
-                    storage.checkers[3] = true; 
-                    BList.Add(true + ":0" + 3);
+                case 2:
+                    if (!storage.BooleanList[1])
+                    {
+                        GameObject Cockpit = GameObject.Find("Events").gameObject.transform.Find("Pen_CockpitEvent3D").gameObject.transform.Find("Interactions").gameObject;
+                        if (Cockpit.transform.Find("PhotoPickup") != null)
+                        {
+                            Cockpit.transform.Find("PhotoPickup").gameObject.transform.GetComponent<ItemPickup>().pickUp();
+                            Cockpit.transform.Find("PhotoPickup").gameObject.SetActive(false);
+                            storage.BooleanList[1] = true;
+                        }
+                    }
                     break;
-                case "RifleWeapon":
-                    storage.checkers[4] = true; 
-                    BList.Add(true + ":0" + 4);
+                case 3:
+                    if (!storage.BooleanList[2])
+                    {
+                        GameObject Ducttape = GameObject.Find("Events").gameObject.transform.Find("PEN_PC").gameObject;
+                        if (Ducttape.transform.Find("TapePickup") != null)
+                        {
+                            Ducttape.transform.Find("TapePickup").gameObject.transform.GetComponent<ItemPickup>().pickUp();
+                            Ducttape.transform.Find("TapePickup").gameObject.SetActive(false);
+                            storage.BooleanList[2] = true;
+                        }
+                    }
                     break;
-                case "FlareWeapon":
-                    storage.checkers[5] = true; 
-                    BList.Add(true + ":0" + 5);
-                    break;
-                case "MacheteWeapon":
-                    storage.checkers[6] = true;
-                    BList.Add(true + ":0" + 5);
+                default:
                     break;
             }
-        }
-        public static void BoolInternal(GameObject item, Storage storage, int index, List<string> BList)
-        {
-            if(item == null) return;
-            if(item.activeSelf != storage.checkers[index])
-            {
-                BList.Add((item.activeSelf) + ":0" + index);
-                storage.checkers[index] = item.activeSelf;
-            }
-        }
-        public static void BoolInternal(bool state, Storage storage, int index, List<string> BList)
-        {
-            if(state != storage.checkers[index])
-            {
-                BList.Add(state + ":0" + index);
-                storage.checkers[index] = state;
-            }
-        }
-        public static void BoolInternal(GameObject item, int index, List<bool> BList, List<string> BSend)
-        {
-            if (item != null)
-            {
-                bool state = item.activeSelf;
-                BList.Add(state);
-                BSend.Add("B:" + state + ":0" + index);
-            }
-        }
-        public static void BoolInternal(bool state, int index, List<bool> BList, List<string> BSend)
-        {
-            BSend.Add(state + ":0" + index);
-            BList[index] = state;
         }
         //Handles End State
         public override void OnApplicationQuit()
@@ -697,18 +689,6 @@ namespace SigiMultiplayer
             // Clean up resources
             this.storage.server?.Shutdown("Exiting");
             this.storage.client?.Shutdown("Exiting");
-        }
-        //Glue
-        public void Coroutine(IEnumerable coroutinetoStart)
-        {
-            MethodInfo startCoroutineMethod;
-            UnityEngine.MonoBehaviour MBehavior = new UnityEngine.MonoBehaviour(); 
-            try
-            {
-                startCoroutineMethod = typeof(MonoBehaviour).GetMethod("StartCoroutine", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            }
-            catch { MelonLogger.Msg("failed 454"); return; }
-            startCoroutineMethod.Invoke(MBehavior, new object[] { coroutinetoStart });
         }
     }
 }
