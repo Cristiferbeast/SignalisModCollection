@@ -7,6 +7,8 @@ using System.IO;
 using UnityEngine.SceneManagement;
 using System.Net;
 using System.Threading;
+using System.Net.Sockets;
+using System.Text;
 
 namespace SigiMultiplayer
 {
@@ -60,13 +62,13 @@ namespace SigiMultiplayer
             if (Input.GetKeyDown(KeyCode.M) && Input.GetKey(KeyCode.L) && Input.GetKey(KeyCode.O))
             {
                 MelonLogger.Msg("Debugging Printed");
-                if(storage.server != null)
+                if (storage.server != null)
                 {
                     MelonLogger.Msg(storage.server.Configuration.ToString());
                     MelonLogger.Msg(storage.server.Statistics.ToString());
                     MelonLogger.Msg(storage.server.Status.ToString());
                 }
-                if(storage.client != null)
+                if (storage.client != null)
                 {
                     MelonLogger.Msg(storage.client.Status.ToString());
                 }
@@ -103,7 +105,7 @@ namespace SigiMultiplayer
             {
                 ClientConnector();
             }
-            if(storage.client != null)
+            if (storage.client != null)
             {
                 if (storage.client.ConnectionStatus == NetConnectionStatus.Connected)
                 {
@@ -113,7 +115,7 @@ namespace SigiMultiplayer
             //When Mod is True Do the Following
             if (storage.active)
             {
-                if(storage.server == null && storage.host)
+                if (storage.server == null && storage.host)
                 {
                     //If Server Null and Host is True, Then Failed
                     storage.active = false;
@@ -168,7 +170,8 @@ namespace SigiMultiplayer
                     MelonLogger.Msg("Port Value Initalized");
                 }
                 string ipv4 = lines[2];
-                if (System.Net.IPAddress.TryParse(ipv4, out storage.ServerIP)) {
+                if (System.Net.IPAddress.TryParse(ipv4, out storage.ServerIP))
+                {
                     MelonLogger.Msg("ServerIP Value Initalized");
                 }
                 else
@@ -275,8 +278,8 @@ namespace SigiMultiplayer
                     MelonLogger.Msg("New connection...");
                     msg.SenderConnection.Approve();
                     storage.connection = storage.server.Connect(msg.SenderConnection.RemoteEndPoint);
-                    MelonLogger.Msg("Attempted to Connect to Sender" + storage.connection.Status); 
-                    if(storage.connection != null) { storage.server.Connections.Add(storage.connection); };
+                    MelonLogger.Msg("Attempted to Connect to Sender" + storage.connection.Status);
+                    if (storage.connection != null) { storage.server.Connections.Add(storage.connection); };
                     break;
                 case NetIncomingMessageType.DebugMessage:
                 case NetIncomingMessageType.ErrorMessage:
@@ -752,6 +755,40 @@ namespace SigiMultiplayer
             storage.Synch = null;
             storage = null;
             base.OnApplicationQuit();
+        }
+    }
+    internal class MonkeUDPServer
+    {
+        static void Main(int serverport, Storage storage)
+        {
+            string hostName = Dns.GetHostName();
+            IPAddress[] hostAddresses = Dns.GetHostAddresses(hostName);
+            IPAddress serverIpAddress = Array.Find(hostAddresses, address => address.AddressFamily == AddressFamily.InterNetwork);
+            if (serverIpAddress == null)
+            {
+                MelonLogger.Msg("No suitable IPv4 address found. Exiting.");
+                return;
+            }
+            UdpClient server = new UdpClient(new IPEndPoint(serverIpAddress, serverport));
+            IPEndPoint serverEndPoint = (IPEndPoint)server.Client.LocalEndPoint;
+            MelonLogger.Msg($"UDP Peer-to-Peer Server started on {serverEndPoint.Address}:{serverEndPoint.Port}. Waiting for connections...");
+            while (true)
+            {
+                IPEndPoint clientEndPoint = new IPEndPoint(IPAddress.Any, 0);
+                byte[] receivedData = server.Receive(ref clientEndPoint);
+                string receivedMessage = Encoding.UTF8.GetString(receivedData);
+                SignalisMultiplayer.HandleMessage(receivedMessage, storage);
+
+                MelonLogger.Msg($"Received message: {receivedMessage}");
+
+                // Send a response back to the sender
+                SignalisMultiplayer.AddMessages(storage);
+                foreach (string responseMessage in storage.MessageCollection)
+                {
+                    byte[] responseData = Encoding.UTF8.GetBytes(responseMessage);
+                    server.Send(responseData, responseData.Length, clientEndPoint);
+                }
+            }
         }
     }
 }
