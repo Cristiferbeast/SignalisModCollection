@@ -323,6 +323,28 @@ namespace SigiMultiplayer
             }
         }
         //Central Runtime - Handling Messages
+        public static void MoveDestination(GameObject Elster, Vector3 incomingvector)
+        {
+            if (Elster.transform.position.z != incomingvector.z)
+            {
+                Elster.transform.position = incomingvector;
+                return;
+            }
+            if (Mathf.Abs(Elster.transform.position.x - incomingvector.x) <= 200f || Mathf.Abs(Elster.transform.position.y - incomingvector.y) <= 200f)
+            {
+                Elster.transform.position = incomingvector;
+                return;
+            }
+            AlternatePlayerController playerController = Elster.GetComponent<AlternatePlayerController>();
+            Vector2 vector2 = incomingvector;
+            while (playerController.lastPos != vector2)
+            {
+                Vector2 fakeInput;
+                fakeInput.x = incomingvector.x - playerController.lastPos.x;
+                fakeInput.y = incomingvector.y - playerController.lastPos.y;
+                playerController.input = fakeInput;
+            }
+        }
         public static void HandleMessage(string message)
         {
             if (message.StartsWith("D:"))
@@ -348,6 +370,7 @@ namespace SigiMultiplayer
                         if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
                         {
                             Vector3 vector = new Vector3(x, y, z);
+                            MoveDestination(storage.EllieClone, vector);
                             storage.EllieClone.transform.position = vector;
                         }
                         else
