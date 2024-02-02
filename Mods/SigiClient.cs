@@ -1,9 +1,9 @@
-﻿using System;
+﻿using MelonLoader;
+using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
 class SigiClient
 {
     // buffer for data transmission
@@ -29,7 +29,7 @@ class SigiClient
         * If you want to get the last known message of the server, then use this!
         (i dunno if there's a better way to do this but this is all i got at the moment :sob:)
 
-        Close the connection with the server using the DiconnectClient() function! It's good practice disconnect the client before stopping the program
+        Close the connection with the server using the DisconnectClient() function! It's good practice disconnect the client before stopping the program
         (though it's not required, the errors will be caught).
     */
 
@@ -38,22 +38,20 @@ class SigiClient
         return receivedMsg;
     }
 
-
     public static async void StartClient(string url)
     {
         Uri hostUrl = new Uri("ws://" + url + ":3000");
-        Console.WriteLine($"attempting to establish connection to {url}");
+        MelonLogger.Msg($"attempting to establish connection to {url}");
         clientSocket = new ClientWebSocket();
         try
         {
             await clientSocket.ConnectAsync(hostUrl, CancellationToken.None);
+            await MsgHandlerAsync();
         }
         catch (Exception error)
         {
-            Console.WriteLine("error: " + error);
+            MelonLogger.Msg("error in StartClient() ->" + error);
         }
-
-        await MsgHandlerAsync();
     }
 
     public static async void ClientUpdate(string test)
@@ -67,25 +65,35 @@ class SigiClient
             }
             else
             {
-                Console.WriteLine("no established connection");
+                MelonLogger.Msg("no established connection");
             }
         }
         catch (Exception error)
         {
-            Console.WriteLine("error: " + error);
+            MelonLogger.Msg("error in ClientUpdate() ->" + error);
         }
     }
 
     public static void Disconnect()
     {
-        clientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal Closure", CancellationToken.None);
+        try
+        {
+            if (clientSocket.State == WebSocketState.Open)
+            {
+                clientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal Closure", CancellationToken.None);
+            }
+        }
+        catch (Exception error)
+        {
+            MelonLogger.Msg("error in Disconnect() ->" + error);
+        }
     }
 
     private static async Task SendMsgAsync(String msg)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(msg);
         await clientSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
-        Console.WriteLine($"sent message: {msg}");
+        MelonLogger.Msg($"sent message: {msg}");
     }
 
     private static async Task MsgHandlerAsync()
@@ -100,17 +108,18 @@ class SigiClient
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
                     receivedMsg = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    Console.WriteLine($"received message: {receivedMsg}");
+                    MelonLogger.Msg($"received message: {receivedMsg}");
                 }
             }
             // Connection lost!
-            await clientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal Closure", CancellationToken.None);
-            Console.WriteLine("connection closed");
+            // THIS IS NEW
+            // await clientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal Closure", CancellationToken.None);
+            MelonLogger.Msg("connection closed");
         }
         catch (WebSocketException error)
         {
             // Error happened, handle it
-            Console.WriteLine("error:" + error);
+            MelonLogger.Msg("error in MsgHandlerAsync ->" + error);
         }
     }
 }
