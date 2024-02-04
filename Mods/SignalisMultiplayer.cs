@@ -18,7 +18,7 @@ namespace SigiMultiplayer
         public GameObject EllieMain;
         public Vector3 l;
         public Quaternion r;
-        public List<string> MessageCollection;
+        public List<string> MessageCollection = new List<string>(){};
         public int connectors = 0;
 
         //Boolean Variables
@@ -52,12 +52,9 @@ namespace SigiMultiplayer
                 MelonLogger.Msg(ConsoleColor.Green, "Server Deactivated for Debugging");
                 storage.active = false;
             }
-            if (Input.GetKeyDown(KeyCode.M) && Input.GetKey(KeyCode.L) && Input.GetKey(KeyCode.O))
-            {
-                MelonLogger.Msg("Debugging Printed");
-            }
             if (Input.GetKeyDown(KeyCode.M) && Input.GetKey(KeyCode.P) && (!storage.active) && (!storage.failsafe))
             {
+                EllieSetUp();
                 storage.active = true;
                 if (storage.host)
                 {
@@ -74,20 +71,26 @@ namespace SigiMultiplayer
                 {
                     string recievedMessage = SigiServer.GetMessage();
                     SignalisMultiplayer.HandleMessage(recievedMessage);
-                    SignalisMultiplayer.AddMessages(storage);
-                    foreach (string responseMessage in storage.MessageCollection)
+                    SignalisMultiplayer.AddMessages();
+                    if (storage.MessageCollection.Count < 0)
                     {
-                        SigiServer.ServerUpdate(responseMessage);
+                        foreach (string responseMessage in storage.MessageCollection)
+                        {
+                            SigiServer.ServerUpdate(responseMessage);
+                        }
                     }
                 }
                 if (!storage.host)
                 {
                     string recievedMessage = SigiClient.GetMessage();
                     SignalisMultiplayer.HandleMessage(recievedMessage);
-                    SignalisMultiplayer.AddMessages(storage);
-                    foreach (string responseMessage in storage.MessageCollection)
+                    SignalisMultiplayer.AddMessages();
+                    if (storage.MessageCollection.Count < 0)
                     {
-                        SigiClient.ClientUpdate(responseMessage);
+                        foreach (string responseMessage in storage.MessageCollection)
+                        {
+                            SigiClient.ClientUpdate(responseMessage);
+                        }
                     }
                 }
             }
@@ -117,7 +120,6 @@ namespace SigiMultiplayer
             }
             return storage;
         }
-
         //Central Runtime - Sending Messages
         public static void EllieSetUp()
         {
@@ -158,9 +160,9 @@ namespace SigiMultiplayer
                 return;
             }
         }
-        public static void AddMessages(Storage storage)
+        public static void AddMessages()
         {
-            List<Vector3> vvalue = CheckVector(storage);
+            List<Vector3> vvalue = CheckVector();
             if (vvalue != null)
             {
                 foreach (Vector3 vecvalue in vvalue)
@@ -169,7 +171,7 @@ namespace SigiMultiplayer
                     storage.MessageCollection.Add(value);
                 }
             }
-            List<Quaternion> qvalue = CheckQuaternion(storage);
+            List<Quaternion> qvalue = CheckQuaternion();
             if (qvalue != null)
             {
                 foreach (Quaternion quatervalue in qvalue)
@@ -178,7 +180,7 @@ namespace SigiMultiplayer
                     storage.MessageCollection.Add(value);
                 }
             }
-            List<string> bkeyvalue = BooleanChecker(storage);
+            List<string> bkeyvalue = BooleanChecker();
             if (bkeyvalue != null)
             {
                 foreach (string fkey in bkeyvalue)
@@ -188,12 +190,17 @@ namespace SigiMultiplayer
                 }
             }
         }
-        public static List<Vector3> CheckVector(Storage storage)
+        public static List<Vector3> CheckVector()
         {
             try
             {
-                List<Vector3> VList = new List<Vector3>();
+                List<Vector3> VList = new List<Vector3>() { };
                 Vector3 e = storage.EllieMain.transform.position;
+                if(storage.l == null)
+                {
+                    storage.l = e;
+                    return null;
+                }
                 Vector3 l = storage.l;
                 if (e.x != l.x || e.y != l.y || e.z != l.z)
                 {
@@ -207,18 +214,23 @@ namespace SigiMultiplayer
                     return null;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                MelonLogger.Msg("Failure on 453-Check Vector");
+                MelonLogger.Msg("Failure on 453-Check Vector " + ex.Message + ex.StackTrace);
                 return null;
             }
         }
-        public static List<Quaternion> CheckQuaternion(Storage storage)
+        public static List<Quaternion> CheckQuaternion()
         {
             try
             {
-                List<Quaternion> QList = new List<Quaternion>();
-                Quaternion e = storage.EllieClone.transform.rotation * Quaternion.Euler(new Vector3(0f, 0f, 270f));
+                List<Quaternion> QList = new List<Quaternion>() { };
+                Quaternion e = storage.EllieMain.transform.rotation * Quaternion.Euler(new Vector3(0f, 0f, 270f));
+                if (storage.r == null)
+                {
+                    storage.r = e;
+                    return null;
+                }
                 Quaternion r = storage.r;
                 if (e.x != r.x || e.y != r.y || e.z != r.z)
                 {
@@ -238,15 +250,15 @@ namespace SigiMultiplayer
             }
 
         }
-        public static List<string> BooleanChecker(Storage storage)
+        public static List<string> BooleanChecker()
         {
             List<string> InternalList = new List<string>();
             string name = SceneManager.GetActiveScene().name;
             switch (name)
             {
                 case "PEN_Wreck":
-                    int roomname = RoomChecker(storage.PENWreckRooms, storage);
-                    BooleanChecker(1, roomname, InternalList, storage);
+                    int roomname = RoomChecker(storage.PENWreckRooms);
+                    BooleanChecker(1, roomname, InternalList);
                     break;
                 case "PEN_Hole":
                     //no boolean cases here :D
@@ -256,7 +268,7 @@ namespace SigiMultiplayer
             }
             return InternalList;
         }
-        public static int RoomChecker(List<string> secondarylist, Storage storage)
+        public static int RoomChecker(List<string> secondarylist)
         {
             foreach (string s in secondarylist)
             {
@@ -272,7 +284,7 @@ namespace SigiMultiplayer
             }
             return 0;
         }
-        public static void BooleanChecker(int index, int RoomName, List<string> InternalList, Storage storage)
+        public static void BooleanChecker(int index, int RoomName, List<string> InternalList)
         {
             switch (index)
             {
@@ -425,7 +437,7 @@ namespace SigiMultiplayer
                         {
                             bool boolean = (boolValue == 1);
                             //This creates a Bool value and a int value that can be used to find the reference bool
-                            ApplyBool(boolean, tag, storage);
+                            ApplyBool(boolean, tag);
                         }
                         else
                         {
@@ -438,12 +450,15 @@ namespace SigiMultiplayer
                     }
                 }
             }
+            if(message == "")
+            {
+            }
             else
             {
                 MelonLoader.MelonLogger.Msg("Server Recieved Unhandled Logic " + message);
             }
         }
-        public static void ApplyBool(bool boolean, int tag, Storage storage)
+        public static void ApplyBool(bool boolean, int tag)
         {
             switch (tag)
             {
@@ -486,13 +501,9 @@ namespace SigiMultiplayer
         //Handles End State
         public override void OnApplicationQuit()
         {
-            if (storage.host)
-            {
-                SigiServer.DisconnectServer();
-            }
             if (!storage.host)
             {
-                SigiClient.Disconnect();
+                SigiClient.DisconnectClient();
             }
         }
     }
