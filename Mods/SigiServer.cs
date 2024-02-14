@@ -6,31 +6,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 
-class SigiServer
+public class SigiServer
 {
 
-    private static TcpListener listener;
-    private static NetworkStream stream;
+    private TcpListener listener;
+    private NetworkStream stream;
 
-    private static int maxConn = 1;
-    private static int conn = 0;
+    private int maxConn = 1;
+    private int conn = 0;
 
-    private static string receivedMessage = "";
+    private string receivedMessage = "";
 
-    /*
-        static void Main(string[] args)
-        {
-            StartServer();
-        }
-    */
-
-
-    public static string GetMessage()
+    public string GetMessage()
     {
         return receivedMessage;
     }
 
-    public static async Task StartServer()
+    public async Task StartServer()
     {
         string serverIP = "0.0.0.0";
         int port = 3000;
@@ -44,37 +36,50 @@ class SigiServer
             {
                 TcpClient client = await listener.AcceptTcpClientAsync();
                 Interlocked.Increment(ref conn);
-                Console.WriteLine("Client connected: " + client.Client.RemoteEndPoint);
+                Console.WriteLine("client connected!");
                 stream = client.GetStream();
                 _ = MsgHandler();
             }
         }
     }
 
-    public static async Task ServerUpdate(string msg)
+    public async Task ServerUpdate(string msg)
     {
-        try
+        if (stream != null)
         {
-            byte[] buffer = Encoding.ASCII.GetBytes(msg);
-            await stream.WriteAsync(buffer, 0, buffer.Length);
-        }
-        catch (Exception error)
-        {
-            Console.WriteLine("error in ServerUpdate() -> " + error);
+            try
+            {
+                byte[] buffer = Encoding.ASCII.GetBytes(msg);
+                await stream.WriteAsync(buffer, 0, buffer.Length);
+            }
+            catch (Exception error)
+            {
+                Console.WriteLine("error in ServerUpdate() -> " + error);
+            }
         }
     }
 
-    private static async Task MsgHandler()
+    private async Task MsgHandler()
     {
         byte[] buffer = new byte[1024];
         try
         {
-            while (true)
+            Boolean connected = true;
+            while (connected)
             {
                 // Receive data from the client
                 int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                receivedMessage = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                Console.WriteLine($"msg received: {receivedMessage}");
+                // Check if stream disconnects. If not, get the message.
+                if (bytesRead != 0)
+                {
+                    receivedMessage = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    //Console.WriteLine($"msg received: {receivedMessage}");
+                }
+                else
+                {
+                    Console.WriteLine("Disconnected");
+                    connected = false;
+                }
             }
         }
         catch (Exception error)
@@ -84,4 +89,3 @@ class SigiServer
         }
     }
 }
-

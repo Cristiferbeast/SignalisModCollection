@@ -4,14 +4,16 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine.SceneManagement;
-using System.Net;
-using System.Net.Sockets;
+using System.Threading;
+using Il2CppSystem.Globalization;
 
 namespace SigiMultiplayer
 {
     public class Storage
     {
         //Variables for Mod
+        public float delay = 3; //Sets the Delay 
+        public float timer; //Records the Delay
         public bool failsafe;
         public bool active = false; //Defines Active State of Mod
         public GameObject EllieClone;
@@ -28,15 +30,9 @@ namespace SigiMultiplayer
         //Readable Server Variables
         public bool host;
         public int ServerPort;
-        public IPAddress ServerIP;
-        public IPEndPoint ServerIPAddress;
-        public UdpClient server;
         public string url;
-
-        /* Legacy Code
-         * public string debugmessage = "";
-         */
-
+        public SigiClient client = new SigiClient();
+        public SigiServer server = new SigiServer();
     }
     public class SignalisMultiplayer : MelonMod
     {
@@ -58,40 +54,72 @@ namespace SigiMultiplayer
                 storage.active = true;
                 if (storage.host)
                 {
-                    SigiServer.StartServer();
+                    storage.server.StartServer();
                 }
                 if (!storage.host)
                 {
-                    SigiClient.StartClient(storage.url);
+                    storage.client.StartClient(storage.url);
                 }
+                storage.EllieClone = GameObject.Find("Ellie_Default(Clone)").gameObject;
             }
             if (storage.active)
             {
-                if (storage.host)
+                storage.timer += 1;
+                if (storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = SigiServer.GetMessage();
-                    SignalisMultiplayer.HandleMessage(recievedMessage);
-                    SignalisMultiplayer.AddMessages();
-                    if (storage.MessageCollection.Count < 0)
+                    string recievedMessage = storage.server.GetMessage().TrimStart('^');
+                    if (recievedMessage != null && recievedMessage != "")
                     {
-                        foreach (string responseMessage in storage.MessageCollection)
+                        string[] messages = recievedMessage.Split('~');
+                        foreach(string message in messages)
                         {
-                            SigiServer.ServerUpdate(responseMessage);
+                            string tempmessage = message.TrimStart('~');
+                            MelonLogger.Msg(tempmessage);
+                            SignalisMultiplayer.HandleMessage(tempmessage);
                         }
                     }
+                    SignalisMultiplayer.AddMessages();
+                    if (storage.MessageCollection.Count > 0)
+                    {
+                        string send = "";
+                        foreach (string responseMessage in storage.MessageCollection)
+                        {
+                            send += $"~{responseMessage}";
+                        }
+                        if (send != "")
+                        {
+                            storage.server.ServerUpdate(send);
+                        }
+                    }
+                    storage.timer -= storage.delay;
                 }
-                if (!storage.host)
+                if (!storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = SigiClient.GetMessage();
-                    SignalisMultiplayer.HandleMessage(recievedMessage);
-                    SignalisMultiplayer.AddMessages();
-                    if (storage.MessageCollection.Count < 0)
+                    string recievedMessage = storage.client.GetMessage().TrimStart('^');
+                    if (recievedMessage != null && recievedMessage != "")
                     {
-                        foreach (string responseMessage in storage.MessageCollection)
+                        string[] messages = recievedMessage.Split('~');
+                        foreach (string message in messages)
                         {
-                            SigiClient.ClientUpdate(responseMessage);
+                            string tempmessage = message.TrimStart('~');
+                            MelonLogger.Msg(tempmessage);
+                            SignalisMultiplayer.HandleMessage(tempmessage);
                         }
                     }
+                    SignalisMultiplayer.AddMessages();
+                    if (storage.MessageCollection.Count > 0)
+                    {
+                        string send = "";
+                        foreach (string responseMessage in storage.MessageCollection)
+                        {
+                            send += $"~{responseMessage}";
+                        }
+                        if(send != "")
+                        {
+                            storage.client.ClientUpdate(send);
+                        }
+                    }
+                    storage.timer -= storage.delay;
                 }
             }
         }
@@ -129,8 +157,8 @@ namespace SigiMultiplayer
                 {
                     GameObject Prerequisties = GameObject.Find("__Prerequisites__").gameObject;
                     GameObject CharOrigin = Prerequisties.transform.Find("Character Origin").gameObject;
-                    GameObject CharRoot = CharOrigin.transform.Find("Character Root").gameObject;
-                    storage.EllieMain = CharRoot.transform.Find("Ellie_Default").gameObject;
+                    GameObject root = CharOrigin.transform.Find("Character Root").gameObject;
+                    storage.EllieMain = root.transform.Find("Ellie_Default").gameObject;
                     storage.EllieClone = UnityEngine.Object.Instantiate(storage.EllieMain);
                     storage.EllieClone.GetComponent<Anchor>().enabled = false;
                     if (storage.EllieClone == null) { storage.active = false; MelonLogger.Msg("Ellie is Null"); return; }
@@ -225,7 +253,7 @@ namespace SigiMultiplayer
             try
             {
                 List<Quaternion> QList = new List<Quaternion>() { };
-                Quaternion e = storage.EllieMain.transform.rotation * Quaternion.Euler(new Vector3(0f, 0f, 270f));
+                Quaternion e = storage.EllieMain.transform.rotation;
                 if (storage.r == null)
                 {
                     storage.r = e;
@@ -335,28 +363,6 @@ namespace SigiMultiplayer
             }
         }
         //Central Runtime - Handling Messages
-        public static void MoveDestination(GameObject Elster, Vector3 incomingvector)
-        {
-            if (Elster.transform.position.z != incomingvector.z)
-            {
-                Elster.transform.position = incomingvector;
-                return;
-            }
-            if (Mathf.Abs(Elster.transform.position.x - incomingvector.x) <= 200f || Mathf.Abs(Elster.transform.position.y - incomingvector.y) <= 200f)
-            {
-                Elster.transform.position = incomingvector;
-                return;
-            }
-            AlternatePlayerController playerController = Elster.GetComponent<AlternatePlayerController>();
-            Vector2 vector2 = incomingvector;
-            while (playerController.lastPos != vector2)
-            {
-                Vector2 fakeInput;
-                fakeInput.x = incomingvector.x - playerController.lastPos.x;
-                fakeInput.y = incomingvector.y - playerController.lastPos.y;
-                playerController.input = fakeInput;
-            }
-        }
         public static void HandleMessage(string message)
         {
             if (message.StartsWith("D:"))
@@ -369,21 +375,21 @@ namespace SigiMultiplayer
                     MelonLoader.MelonLogger.Msg("Message Recieved " + message);
                 }
             }
-            if (message.StartsWith("V:"))
+            else if (message.StartsWith("V:"))
             {
                 //Handles Vector Transforms Passed by Server, To Be Used if Ellie Moves
-                int colonIndex = message.IndexOf(':');
-                if (colonIndex != -1 && colonIndex < message.Length - 1)
+                int openParenIndex = message.IndexOf('(');
+                int closeParenIndex = message.IndexOf(')');
+                if (openParenIndex != -1 && closeParenIndex != -1 && closeParenIndex > openParenIndex)
                 {
-                    string numbersPart = message.Substring(colonIndex + 1).Trim();
+                    string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
                     string[] numberStrings = numbersPart.Split(',');
                     if (numberStrings.Length == 3)
                     {
                         if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
                         {
                             Vector3 vector = new Vector3(x, y, z);
-                            MoveDestination(storage.EllieClone, vector);
-                            storage.EllieClone.transform.position = vector;
+                            storage.EllieClone.transform.position = Vector3.MoveTowards(storage.EllieClone.transform.position, vector, storage.delay * Time.deltaTime);
                         }
                         else
                         {
@@ -396,17 +402,23 @@ namespace SigiMultiplayer
                     }
                 }
             }
-            if (message.StartsWith("Q:"))
+            else if (message.StartsWith("Q:"))
             {
                 //Handles Rotations Passed by The Server, To be Used if Ellie Rotates
                 int colonIndex = message.IndexOf(':');
-                if (colonIndex != -1 && colonIndex < message.Length - 1)
+                int openParenIndex = message.IndexOf('(');
+                int closeParenIndex = message.IndexOf(')');
+
+                if (colonIndex != -1 && openParenIndex != -1 && closeParenIndex != -1 && colonIndex < openParenIndex && openParenIndex < closeParenIndex)
                 {
-                    string numbersPart = message.Substring(colonIndex + 1).Trim();
+                    string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
                     string[] numberStrings = numbersPart.Split(',');
                     if (numberStrings.Length == 4)
                     {
-                        if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z) && float.TryParse(numberStrings[3].Trim(), out float w))
+                        if (float.TryParse(numberStrings[0].Trim(), out float x) &&
+                            float.TryParse(numberStrings[1].Trim(), out float y) &&
+                            float.TryParse(numberStrings[2].Trim(), out float z) &&
+                            float.TryParse(numberStrings[3].Trim(), out float w))
                         {
                             Quaternion quaternion = new Quaternion(x, y, z, w);
                             storage.EllieClone.transform.rotation = quaternion;
@@ -418,11 +430,11 @@ namespace SigiMultiplayer
                     }
                     else
                     {
-                        MelonLoader.MelonLogger.Msg("Expected 3 numbers.");
+                        MelonLoader.MelonLogger.Msg("Expected 4 numbers for quaternion.");
                     }
                 }
             }
-            if (message.StartsWith("B:"))
+            else if (message.StartsWith("B:"))
             {
                 //Handles Boolean Values
                 int colonIndex = message.IndexOf(':');
@@ -450,7 +462,7 @@ namespace SigiMultiplayer
                     }
                 }
             }
-            if(message == "")
+            else if (message == "")
             {
             }
             else
@@ -503,7 +515,7 @@ namespace SigiMultiplayer
         {
             if (!storage.host)
             {
-                SigiClient.DisconnectClient();
+                storage.client.DisconnectClient();
             }
         }
     }
