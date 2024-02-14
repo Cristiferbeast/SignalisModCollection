@@ -5,25 +5,17 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Sockets;
-
-class SigiClient
+public class SigiClient
 {
-    private static NetworkStream stream;
-    private static string receivedMessage = "";
-    /*
-        static async Task Main(string[] args)
-        {
-            string hostIP = "127.0.0.1";
-            StartClient(hostIP);
-        }
-    */
+    private NetworkStream stream;
+    private string receivedMessage = "";
 
-    public static string GetMessage()
+    public string GetMessage()
     {
         return receivedMessage;
     }
 
-    public static void StartClient(string url)
+    public void StartClient(string url)
     {
         TcpClient client = new TcpClient(url, 3000);
         Console.WriteLine("server connected!!!");
@@ -40,18 +32,35 @@ class SigiClient
         }
     }
 
-    private static async Task MsgHandler(NetworkStream str)
+    private async Task MsgHandler(NetworkStream str)
     {
         byte[] buffer = new byte[1024];
-        while (true)
+        try
         {
-            int bytesRead = await str.ReadAsync(buffer, 0, buffer.Length);
-            receivedMessage = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-            Console.WriteLine($"msg received: {receivedMessage}");
+            Boolean connected = true;
+            while (connected)
+            {
+                int bytesRead = await str.ReadAsync(buffer, 0, buffer.Length);
+                if (bytesRead != 0)
+                {
+                    receivedMessage = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    //Console.WriteLine($"msg received: {receivedMessage}");
+                }
+                else
+                {
+                    Console.WriteLine("Disconnected");
+                    connected = false;
+                }
+            }
         }
+        catch (Exception error)
+        {
+            Console.WriteLine("error in MsgHandler() -> " + error);
+        }
+
     }
 
-    public static async Task ClientUpdate(string msg)
+    public async Task ClientUpdate(string msg)
     {
         if (stream != null)
         {
@@ -67,7 +76,7 @@ class SigiClient
         }
     }
 
-    public static async Task DisconnectClient()
+    public async Task DisconnectClient()
     {
         if (stream != null)
         {
@@ -77,7 +86,7 @@ class SigiClient
             }
             catch (Exception error)
             {
-                Console.WriteLine("error in ServerUpdate() -> " + error);
+                Console.WriteLine("error in DisconnectClient() -> " + error);
             }
         }
     }
