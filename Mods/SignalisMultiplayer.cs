@@ -4,16 +4,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine.SceneManagement;
-using System.Threading;
-using Il2CppSystem.Globalization;
 
 namespace SigiMultiplayer
 {
     public class Storage
     {
         //Variables for Mod
-        public float delay = 3; //Sets the Delay 
-        public float timer; //Records the Delay
+        public float delay = 2; //Sets the Delay 
+        public float timer = 0; //Records the Delay
         public bool failsafe;
         public bool active = false; //Defines Active State of Mod
         public GameObject EllieClone;
@@ -31,8 +29,8 @@ namespace SigiMultiplayer
         public bool host;
         public int ServerPort;
         public string url;
-        public SigiClient client = new SigiClient();
-        public SigiServer server = new SigiServer();
+        public SigiClient client;
+        public SigiServer server;
     }
     public class SignalisMultiplayer : MelonMod
     {
@@ -67,17 +65,10 @@ namespace SigiMultiplayer
                 storage.timer += 1;
                 if (storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = storage.server.GetMessage().TrimStart('^');
-                    if (recievedMessage != null && recievedMessage != "")
-                    {
-                        string[] messages = recievedMessage.Split('~');
-                        foreach(string message in messages)
-                        {
-                            string tempmessage = message.TrimStart('~');
-                            MelonLogger.Msg(tempmessage);
-                            SignalisMultiplayer.HandleMessage(tempmessage);
-                        }
-                    }
+
+                    string recievedMessage = storage.server.GetMessage();
+                    MessageParse(recievedMessage);
+                    storage.MessageCollection.Clear();
                     SignalisMultiplayer.AddMessages();
                     if (storage.MessageCollection.Count > 0)
                     {
@@ -88,24 +79,16 @@ namespace SigiMultiplayer
                         }
                         if (send != "")
                         {
-                            storage.server.ServerUpdate(send);
+                            storage.server.UdpServerUpdate(send);
                         }
                     }
                     storage.timer -= storage.delay;
                 }
                 if (!storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = storage.client.GetMessage().TrimStart('^');
-                    if (recievedMessage != null && recievedMessage != "")
-                    {
-                        string[] messages = recievedMessage.Split('~');
-                        foreach (string message in messages)
-                        {
-                            string tempmessage = message.TrimStart('~');
-                            MelonLogger.Msg(tempmessage);
-                            SignalisMultiplayer.HandleMessage(tempmessage);
-                        }
-                    }
+                    string recievedMessage = storage.client.GetMessage();
+                    MessageParse(recievedMessage);
+                    storage.MessageCollection.Clear();
                     SignalisMultiplayer.AddMessages();
                     if (storage.MessageCollection.Count > 0)
                     {
@@ -114,9 +97,9 @@ namespace SigiMultiplayer
                         {
                             send += $"~{responseMessage}";
                         }
-                        if(send != "")
+                        if (send != "")
                         {
-                            storage.client.ClientUpdate(send);
+                            storage.client.UdpClientUpdate(send);
                         }
                     }
                     storage.timer -= storage.delay;
@@ -146,9 +129,24 @@ namespace SigiMultiplayer
             {
                 MelonLoader.MelonLogger.Msg("Config file not found at path: " + MultiplayerModConfigPath);
             }
+            if (storage.host)
+            {
+                storage.server = new SigiServer();
+            }
+            if (!storage.host)
+            {
+                storage.client = new SigiClient();
+            }
             return storage;
         }
         //Central Runtime - Sending Messages
+        public static void MessageParse(string recievedMessage)
+        {
+            if (recievedMessage != null && recievedMessage != "")
+            {
+                SignalisMultiplayer.HandleMessage(recievedMessage);
+            } 
+        }
         public static void EllieSetUp()
         {
             try
@@ -389,7 +387,7 @@ namespace SigiMultiplayer
                         if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
                         {
                             Vector3 vector = new Vector3(x, y, z);
-                            storage.EllieClone.transform.position = Vector3.MoveTowards(storage.EllieClone.transform.position, vector, storage.delay * Time.deltaTime);
+                            storage.EllieClone.transform.position = vector;
                         }
                         else
                         {
@@ -513,10 +511,6 @@ namespace SigiMultiplayer
         //Handles End State
         public override void OnApplicationQuit()
         {
-            if (!storage.host)
-            {
-                storage.client.DisconnectClient();
-            }
         }
     }
 }
