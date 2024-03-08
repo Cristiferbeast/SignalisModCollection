@@ -1,22 +1,32 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Collections.Generic;
-public class SigiServer
-{
-    private string IpAddress = "0.0.0.0";
-    static private int port = 3000;
-    private TcpListener TcpServer;
-    private List<TcpClient> TcpClients = new List<TcpClient>();
-    private UdpClient UdpServer = new UdpClient(port);
-    private List<IPEndPoint> UdpClients = new List<IPEndPoint>();
-    private int conn = 0;
-    private LinkedList<string> MessageQueue = new LinkedList<string>();
-    private byte[] buffer;
 
+class SigiMPServer(){
+    private readonly string IpAddress = "0.0.0.0";
+    private readonly int port = 3000;
+    private TcpListener? TcpServer;
+    private UdpClient? UdpServer;
+    private readonly List<string> MessageQueue = [];
+    private readonly List<Player> CurrentPlayers = [];
+    private byte[]? buffer;
+    private byte IdAssigner = 1;
+
+    private class Player{
+        public byte PlayerID {get;}
+        public TcpClient PlayerTcpClient {get;}
+        public IPEndPoint PlayerUdpClient {get;}
+        public string PlayerPosition { get; set; }
+        public string PlayerRotation { get; set; }
+        public Player(byte Id, TcpClient tcpClient, IPEndPoint udpClient){
+            PlayerTcpClient = tcpClient;
+            PlayerUdpClient = udpClient;
+            PlayerPosition = "";
+            PlayerRotation = "";
+            PlayerID = Id;
+        }
+    }
+    
 
     /*******************
 
@@ -30,89 +40,94 @@ public class SigiServer
         while(true){
             Thread.Sleep(1000);
             server.UdpServerUpdate("test");
-            Console.WriteLine(server.GetMessage());
+            string test = server.GetPlayerPosition() + server.GetPlayerRotation();
+            Console.WriteLine(test);
         }
-    } */
-
+    }  */
+    
     // public functions!
 
     // returns the first message in the message queue and removes it.
-    public string GetMessage()
-    {
-        if (MessageQueue.First != null)
-        {
-            string msg = MessageQueue.First.Value;
-            MessageQueue.RemoveFirst();
+    public string GetMessage(){
+        if(MessageQueue != null){
+            string msg = MessageQueue.First();
+            MessageQueue.RemoveAt(0);
             return msg;
-        }
-        else
-        {
+        }else{
             return "";
         }
     }
 
     // returns the entire message queue and clears it.
-    public LinkedList<string> GetMessageQueue()
-    {
-        LinkedList<string> queue = MessageQueue;
-        MessageQueue = new LinkedList<string>();
+    public List<string> GetMessageQueue(){
+        List<string> queue = MessageQueue;
+        MessageQueue.Clear();
         return queue;
     }
 
+    public string GetPlayerPosition(){
+        return CurrentPlayers[0].PlayerPosition;
+    }
+
+    public string GetPlayerRotation(){
+        return CurrentPlayers[0].PlayerRotation;
+    }
+
+    public List<string> GetPlayerMovement(){
+        return [GetPlayerPosition(), GetPlayerRotation()];
+    }
+
+    public int GetPlayerCount(){
+        return CurrentPlayers.Count();
+    }
+
+
     // starts the server. default is set to '0.0.0.0' so it listens to all possible connections on port 3000.
-    public async Task StartServer()
-    {
+    public async Task StartServer(){
         Console.WriteLine("server listening on port 3000");
-        TcpServer = new TcpListener(IPAddress.Parse(IpAddress), port);
+        TcpServer = new TcpListener(IPAddress.Parse(IpAddress),port);
+        UdpServer = new UdpClient(port);
         TcpServer.Start();
 
         // handle UDP messages
         _ = UdpMessageHandler();
 
         // handle incoming tcp connections. 
-        while (true)
-        {
-            // finds a connection
+        while (true){
             TcpClient client = await TcpServer.AcceptTcpClientAsync();
-            Interlocked.Increment(ref conn);
             Console.WriteLine("client connected!");
 
             // add client to both the tcp and udp list
             EstablishConnection(client);
-            _ = TcpMessageHandler(client);
-
         }
     }
 
     // sends a string to the client. messages start with the tilde (~) key to be parsed better.
     public void TcpServerUpdate(string msg)
     {
-        try
-        {
-            buffer = Encoding.ASCII.GetBytes("~" + msg);
-            foreach (TcpClient client in TcpClients)
-            {
-                client.GetStream().WriteAsync(buffer, 0, buffer.Length);
+        try{
+            buffer = Encoding.ASCII.GetBytes(msg);
+            foreach(Player player in CurrentPlayers){
+                player.PlayerTcpClient.GetStream().WriteAsync(buffer, 0, buffer.Length);
             }
-        }
-        catch (Exception error)
-        {
+        }catch(Exception error){
             Console.WriteLine("error in ServerUpdate() -> " + error);
         }
     }
     public void UdpServerUpdate(string msg)
     {
-        try
-        {
-            buffer = Encoding.ASCII.GetBytes("~" + msg);
-            foreach (IPEndPoint client in UdpClients)
-            {
-                UdpServer.SendAsync(buffer, buffer.Length, client);
+        if(UdpServer != null){
+            try{
+                buffer = Encoding.ASCII.GetBytes(msg);
+                    foreach(Player player in CurrentPlayers){
+                        UdpServer.SendAsync(buffer, buffer.Length, player.PlayerUdpClient);
+                    }
+                
+            }catch(Exception error){
+                Console.WriteLine("error in ServerUpdate() -> " + error);
             }
-        }
-        catch (Exception error)
-        {
-            Console.WriteLine("error in ServerUpdate() -> " + error);
+        }else{
+            Console.WriteLine("server not started :(");
         }
     }
 
@@ -121,113 +136,99 @@ public class SigiServer
     */
 
     // handles receiving udp messages. doesnt rly care where its from.
-    private async Task UdpMessageHandler()
-    {
-        byte[] bufferRec = new byte[128];
-        try
-        {
-            Boolean connected = true;
-            while (connected)
-            {
-                bufferRec = new byte[128];
-                // Receive data from the client
-                UdpReceiveResult result = await UdpServer.ReceiveAsync();
-                string receivedMessage = Encoding.ASCII.GetString(result.Buffer);
-                /* Get the data, split it into their different messages using the tilde key,
-                then add it into the message queue */
-                string[] parsedMessage = receivedMessage.Split('~');
-                // first msg is ignored bc it's probably an empty string
-                for (int i = 1; i < parsedMessage.Length; i++)
-                {
-                    MessageQueue.AddLast(parsedMessage[i]);
+    private async Task UdpMessageHandler(){
+        if(UdpServer != null){
+            try{
+                Boolean connected = true;
+                while (connected){
+                    UdpReceiveResult result = await UdpServer.ReceiveAsync();
+                    string ReceivedMessage = Encoding.ASCII.GetString(result.Buffer);
+                    AddMessageToQueue(ReceivedMessage);
+                    // Console.WriteLine($"client msg received: {ReceivedMessage}");
                 }
-                Console.WriteLine($"client msg received: {receivedMessage}");
             }
+            catch (Exception error){
+                Console.WriteLine("error in UdpMessageHandler() for server -> " + error);
+            }
+        }else{
+            Console.WriteLine("server not started :(");
         }
-        catch (Exception error)
-        {
-            Interlocked.Decrement(ref conn);
-            Console.WriteLine("error in UdpMessageHandler() for server -> " + error);
-        }
+        
     }
 
     // handles receiving tcp messages. one is open for each client.
-    private async Task TcpMessageHandler(TcpClient Client)
-    {
-        byte[] bufferRec = new byte[128];
+    private async Task TcpMessageHandler(TcpClient Client, byte Id){
+        byte[] BufferForReceive = new byte[128];
 
         // dispose of client after using it
-        using (Client)
-        {
+        using(Client){
             NetworkStream Stream = Client.GetStream();
-            try
-            {
+            try{
                 Boolean connected = true;
-                while (connected)
-                {
-                    bufferRec = new byte[128];
-                    int bytesRead = await Stream.ReadAsync(bufferRec, 0, bufferRec.Length);
+                while (connected){
+                    BufferForReceive = new byte[128];
+                    int BytesRead = await Stream.ReadAsync(BufferForReceive, 0, BufferForReceive.Length);
 
-                    if (bytesRead != 0)
-                    {
-                        // Get the data, split it into their different messages using the tilde key,
-                        // then add it into the message queue 
-                        string receivedMessage = Encoding.ASCII.GetString(bufferRec, 0, bytesRead);
-                        string[] parsedMessage = receivedMessage.Split('~');
-
-                        // first msg is ignored bc it's probably an empty string
-                        for (int i = 1; i < parsedMessage.Length; i++)
-                        {
-                            MessageQueue.AddLast(parsedMessage[i]);
-                        }
-                        /* Console.WriteLine($"client msg received: {receivedMessage}"); */
-                    }
-                    else
-                    {
+                    if(BytesRead != 0){
+                        string ReceivedMessage = Encoding.ASCII.GetString(BufferForReceive, 0, BytesRead);
+                        AddMessageToQueue(ReceivedMessage);
+                        /* Console.WriteLine($"client msg received: {ReceivedMessage}"); */
+                    }else{
                         connected = false;
-                        Stream.Close();
                     }
                 }
-            }
-            catch (System.IO.IOException e)
-            {
+            }catch(System.IO.IOException){
                 Console.WriteLine("lost connection to the client. they might've disconnected!");
-            }
-            catch (Exception error)
-            {
-                Interlocked.Decrement(ref conn);
+            }catch (Exception error){
                 Console.WriteLine("error in TcpMessageHandler() for server  -> " + error);
             }
             Stream.Close();
+            foreach (Player player in CurrentPlayers){
+                if(player.PlayerID == Id){
+                    CurrentPlayers.Remove(player);
+                    break;
+                }
+            }
         }
     }
 
-    private void EstablishConnection(TcpClient client)
-    {
-        byte[] bufferRec = new byte[128];
+    private void EstablishConnection(TcpClient client){
+        byte[] BufferForReceive = new byte[128];
         Console.WriteLine("establishing connection...");
 
         // get the ip address of the client who connected
-        IPEndPoint remoteEndPoint = client.Client.RemoteEndPoint as IPEndPoint;
-        try
-        {
-            // if the ip address isn't null and it's a viable ip address, add to it the udp list.
-            if (remoteEndPoint != null && remoteEndPoint.AddressFamily == AddressFamily.InterNetwork)
-            {
-                // if you're testing sending udp to programs within your pc, set this to 3001
-                IPEndPoint endpoint = new IPEndPoint(remoteEndPoint.Address, 3000);
-                Console.WriteLine("connected from: " + remoteEndPoint.Address.ToString());
-                TcpClients.Add(client);
-                UdpClients.Add(endpoint);
-            }
-            else
-            {
+        IPEndPoint? ClientIPAddress = client.Client.RemoteEndPoint as IPEndPoint;
+        try{
+            if (ClientIPAddress != null && ClientIPAddress.AddressFamily == AddressFamily.InterNetwork){
+                IPEndPoint ParsedClientIPAddress = new IPEndPoint(ClientIPAddress.Address,3000);
+                Console.WriteLine("connected from: " + ClientIPAddress.Address.ToString());
+                CurrentPlayers.Add(new Player(IdAssigner, client, ParsedClientIPAddress));
+                _ = TcpMessageHandler(client, IdAssigner);
+                IdAssigner++;
+            }else{
                 Console.WriteLine("failed to retrieve client ip");
+                client.Close();
             }
-        }
-        catch (Exception error)
-        {
+        }catch(Exception error){
             Console.WriteLine("error in EstablishConnection() -> " + error);
+        }
+    }
+
+    private void AddMessageToQueue(string RawMessage){
+        // we might not need this
+        string[] ParsedMessage = RawMessage.Split("~");
+        for(int i = 1;i < ParsedMessage.Length; i++){
+            // we might add more to this table soon.
+            string Message = ParsedMessage[i];
+            switch(Message[0]){
+                case 'V':
+                    CurrentPlayers[0].PlayerPosition = Message;
+                    break;
+                case 'Q':
+                    CurrentPlayers[0].PlayerRotation = Message;
+                    break;
+            }
+            MessageQueue.Add(ParsedMessage[i]);
         }
     }
 }
