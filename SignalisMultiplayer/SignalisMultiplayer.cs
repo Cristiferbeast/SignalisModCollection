@@ -1,8 +1,8 @@
 ﻿using MelonLoader;
-using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace SigiMultiplayer
@@ -25,6 +25,7 @@ namespace SigiMultiplayer
         public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall" }; //we do not need rooms without boolean values
         public List<bool> BooleanList = new List<bool>() { false, false, false };
         public Dictionary<int, GameObject> ActiveEnemyList = new Dictionary<int, GameObject>() { }; //used by boolean handler to store active enemies 
+        public Dictionary<int, GameObject> ManagedEnemies = new Dictionary<int, GameObject> { }; //used by Enemy Handler
         public Dictionary<int,string> TemporaryEnemyData = new Dictionary<int, string> { };
 
         //Readable Server Variables
@@ -365,6 +366,57 @@ namespace SigiMultiplayer
                     break;
             }
         }
+        public static void EnemyReaderLogic()
+        {
+            //When an enemy is in a room, the boolean checker will add the value of that rooms enemy tag 
+            if (storage.ActiveEnemyList.Count == 0)
+            {
+                return;
+            }
+            foreach (int enemy in storage.ActiveEnemyList.Keys)
+            {
+                EnemyDetails(storage.ActiveEnemyList[enemy], enemy);
+            }
+        }
+        public static string EnemyDetails(GameObject Enemy, int tag)
+        {
+            if (Enemy == null)
+            {
+                Console.WriteLine("Enemy Returned Null Error");
+                return null;
+            }
+            string Details = $"E:{tag + 1}>";
+            string FDet = "";
+            if (storage.TemporaryEnemyData[tag] == null)
+            {
+                Details += "V:" + Enemy.transform.position.ToString() + ">";
+                Details += "Q:" + Enemy.transform.rotation.ToString() + ">";
+                Details += "B:" + true + ">"; //replace with dead logic
+                FDet = Details;
+            }
+            else
+            {
+                string[] data = storage.TemporaryEnemyData[tag].Split('>');
+                FDet = Details;
+                if ("V:" + Enemy.transform.position.ToString() != data[1])
+                {
+                    Details += "V:" + Enemy.transform.position.ToString() + ">";
+                }
+                FDet += "V:" + Enemy.transform.position.ToString() + ">";
+                if ("Q:" + Enemy.transform.rotation.ToString() + ">" != data[2])
+                {
+                    Details += "Q:" + Enemy.transform.rotation.ToString() + ">";
+                }
+                FDet += "Q:" + Enemy.transform.rotation.ToString() + ">";
+                if ("B:" + true + ">" != data[3])
+                {
+                    Details += "B:" + true + ">"; //replace with dead logic
+                }
+                FDet += "B:" + true + ">"; //replace with dead logic
+            }
+            storage.TemporaryEnemyData[tag] = FDet;
+            return Details;
+        }
         //Central Runtime - Handling Messages
         public static void HandleMessage(string message)
         {
@@ -380,90 +432,19 @@ namespace SigiMultiplayer
             }
             else if (message.StartsWith("V:"))
             {
-                //Handles Vector Transforms Passed by Server, To Be Used if Ellie Moves
-                int openParenIndex = message.IndexOf('(');
-                int closeParenIndex = message.IndexOf(')');
-                if (openParenIndex != -1 && closeParenIndex != -1 && closeParenIndex > openParenIndex)
-                {
-                    string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
-                    string[] numberStrings = numbersPart.Split(',');
-                    if (numberStrings.Length == 3)
-                    {
-                        if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
-                        {
-                            Vector3 vector = new Vector3(x, y, z);
-                            storage.EllieClone.transform.position = vector;
-                        }
-                        else
-                        {
-                            MelonLoader.MelonLogger.Msg("Error parsing numbers.");
-                        }
-                    }
-                    else
-                    {
-                        MelonLoader.MelonLogger.Msg("Expected 3 numbers.");
-                    }
-                }
+                ApplyVector(storage.EllieClone, message);
             }
             else if (message.StartsWith("Q:"))
             {
-                //Handles Rotations Passed by The Server, To be Used if Ellie Rotates
-                int colonIndex = message.IndexOf(':');
-                int openParenIndex = message.IndexOf('(');
-                int closeParenIndex = message.IndexOf(')');
-
-                if (colonIndex != -1 && openParenIndex != -1 && closeParenIndex != -1 && colonIndex < openParenIndex && openParenIndex < closeParenIndex)
-                {
-                    string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
-                    string[] numberStrings = numbersPart.Split(',');
-                    if (numberStrings.Length == 4)
-                    {
-                        if (float.TryParse(numberStrings[0].Trim(), out float x) &&
-                            float.TryParse(numberStrings[1].Trim(), out float y) &&
-                            float.TryParse(numberStrings[2].Trim(), out float z) &&
-                            float.TryParse(numberStrings[3].Trim(), out float w))
-                        {
-                            Quaternion quaternion = new Quaternion(x, y, z, w);
-                            storage.EllieClone.transform.rotation = quaternion;
-                        }
-                        else
-                        {
-                            MelonLoader.MelonLogger.Msg("Error parsing numbers.");
-                        }
-                    }
-                    else
-                    {
-                        MelonLoader.MelonLogger.Msg("Expected 4 numbers for quaternion.");
-                    }
-                }
+                ApplyQuaternion(storage.EllieClone, message); 
             }
             else if (message.StartsWith("B:"))
             {
-                //Handles Boolean Values
-                int colonIndex = message.IndexOf(':');
-                if (colonIndex != -1 && colonIndex < message.Length - 1)
-                {
-                    string dataPart = message.Substring(colonIndex + 1).Trim();
-                    //Splits the Two Types of Data
-                    string[] parts = dataPart.Split(',');
-                    if (parts.Length == 2)
-                    {
-                        if (int.TryParse(parts[0].Trim(), out int boolValue) && int.TryParse(parts[1].Trim(), out int tag))
-                        {
-                            bool boolean = (boolValue == 1);
-                            //This creates a Bool value and a int value that can be used to find the reference bool
-                            ApplyBool(boolean, tag, message);
-                        }
-                        else
-                        {
-                            MelonLoader.MelonLogger.Msg("Error parsing values.");
-                        }
-                    }
-                    else
-                    {
-                        MelonLoader.MelonLogger.Msg("Expected 2 values for the message.");
-                    }
-                }
+                ApplyBool(message);
+            }
+            else if (message.StartsWith("E:"))
+            {
+                EnemyMessageReaderPrime(message);
             }
             else if (message == "")
             {
@@ -471,6 +452,34 @@ namespace SigiMultiplayer
             else
             {
                 MelonLoader.MelonLogger.Msg("Server Recieved Unhandled Logic " + message);
+            }
+        }
+        public static void ApplyBool(string message)
+        {
+            //Handles Boolean Values
+            int colonIndex = message.IndexOf(':');
+            if (colonIndex != -1 && colonIndex < message.Length - 1)
+            {
+                string dataPart = message.Substring(colonIndex + 1).Trim();
+                //Splits the Two Types of Data
+                string[] parts = dataPart.Split(',');
+                if (parts.Length == 2)
+                {
+                    if (int.TryParse(parts[0].Trim(), out int boolValue) && int.TryParse(parts[1].Trim(), out int tag))
+                    {
+                        bool boolean = (boolValue == 1);
+                        //This creates a Bool value and a int value that can be used to find the reference bool
+                        ApplyBool(boolean, tag, message);
+                    }
+                    else
+                    {
+                        MelonLoader.MelonLogger.Msg("Error parsing values.");
+                    }
+                }
+                else
+                {
+                    MelonLoader.MelonLogger.Msg("Expected 2 values for the message.");
+                }
             }
         }
         public static void ApplyBool(bool boolean, int tag, string message)
@@ -530,55 +539,91 @@ namespace SigiMultiplayer
                     break;
             }
         }
-        public static void EnemyReaderLogic()
+        public static void ApplyVector(GameObject item, string message)
         {
-            //When an enemy is in a room, the boolean checker will add the value of that rooms enemy tag 
-            if(storage.ActiveEnemyList.Count == 0)
+             //Handles Vector Transforms Passed by Server, To Be Used if Ellie Moves
+                int openParenIndex = message.IndexOf('(');
+                int closeParenIndex = message.IndexOf(')');
+                if (openParenIndex != -1 && closeParenIndex != -1 && closeParenIndex > openParenIndex)
+                {
+                    string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
+                    string[] numberStrings = numbersPart.Split(',');
+                    if (numberStrings.Length == 3)
+                    {
+                        if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
+                        {
+                            Vector3 vector = new Vector3(x, y, z);
+                            item.transform.position = vector;
+                        }
+                        else
+                        {
+                            MelonLoader.MelonLogger.Msg("Error parsing numbers.");
+                        }
+                    }
+                    else
+                    {
+                        MelonLoader.MelonLogger.Msg("Expected 3 numbers.");
+                    }
+                }
+        }
+        public static void ApplyQuaternion(GameObject item, string message)
+        {
+            //Handles Rotations Passed by The Server, To be Used if Ellie Rotates
+            int colonIndex = message.IndexOf(':');
+            int openParenIndex = message.IndexOf('(');
+            int closeParenIndex = message.IndexOf(')');
+
+            if (colonIndex != -1 && openParenIndex != -1 && closeParenIndex != -1 && colonIndex < openParenIndex && openParenIndex < closeParenIndex)
             {
-                return;
-            }
-            foreach (int enemy in storage.ActiveEnemyList.Keys)
-            {
-                EnemyDetails(storage.ActiveEnemyList[enemy], enemy);
+                string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
+                string[] numberStrings = numbersPart.Split(',');
+                if (numberStrings.Length == 4)
+                {
+                    if (float.TryParse(numberStrings[0].Trim(), out float x) &&
+                        float.TryParse(numberStrings[1].Trim(), out float y) &&
+                        float.TryParse(numberStrings[2].Trim(), out float z) &&
+                        float.TryParse(numberStrings[3].Trim(), out float w))
+                    {
+                        Quaternion quaternion = new Quaternion(x, y, z, w);
+                        item.transform.rotation = quaternion;
+                    }
+                    else
+                    {
+                        MelonLoader.MelonLogger.Msg("Error parsing numbers.");
+                    }
+                }
+                else
+                {
+                    MelonLoader.MelonLogger.Msg("Expected 4 numbers for quaternion.");
+                }
             }
         }
-        public static string EnemyDetails(GameObject Enemy, int tag)
+        public static GameObject ApplyEnemy(bool boolean, int tag)
         {
-            if (Enemy == null)
+            GameObject returnvalue;
+            switch(tag)
             {
-                Console.WriteLine("Enemy Returned Null Error");
-                return null;
+                case 1:
+                    returnvalue = new GameObject();
+                    break;
+                default:
+                    returnvalue = null;
+                break;
             }
-            string Details = $"E:{tag}>";
-            string FDet = "";
-            if (storage.TemporaryEnemyData[tag] == null)
+            return returnvalue;
+        }
+        public static void EnemyMessageReaderPrime(string message)
+        {
+            //All Enemy Units must have 2 digits of Boolean, First digit is active state, Second digit is primacy. If Active State is true, then opposite has primacy, if it is false then current has primacy
+            string[] data = message.Split('>');
+            int outtag = int.Parse(data[0]);
+            if (storage.ManagedEnemies[outtag] == null)
             {
-                Details += "V:" + Enemy.transform.position.ToString() + ">";
-                Details += "Q:" + Enemy.transform.rotation.ToString() + ">";
-                Details += "B:" + true + ">"; //replace with dead logic
-                FDet = Details;
+                storage.ManagedEnemies[outtag] = ApplyEnemy(true, outtag);
             }
-            else
-            {
-                string[] data = storage.TemporaryEnemyData[tag].Split('>');
-                if("V:" + Enemy.transform.position.ToString() != data[0])
-                {
-                    Details += "V:" + Enemy.transform.position.ToString() + ">";
-                }
-                FDet += "V:" + Enemy.transform.position.ToString() + ">";
-                if("Q:" + Enemy.transform.rotation.ToString() + ">" != data[1])
-                {
-                    Details += "Q:" + Enemy.transform.rotation.ToString() + ">";
-                }
-                FDet += "Q:" + Enemy.transform.rotation.ToString() + ">";
-                if("B:" + true + ">" != data[2])
-                {
-                    Details += "B:" + true + ">"; //replace with dead logic
-                }
-                FDet += "B:" + true + ">"; //replace with dead logic
-            }
-            storage.TemporaryEnemyData[tag]= FDet;
-            return Details;
+            ApplyVector(storage.ManagedEnemies[outtag], data[1]);
+            ApplyQuaternion(storage.ManagedEnemies[outtag], data[2]);
+            ApplyBool(data[3]);
         }
         //Handles End State
         public override void OnApplicationQuit()

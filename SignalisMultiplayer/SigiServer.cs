@@ -1,11 +1,12 @@
-﻿using System;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System;
+using System.Threading.Tasks;
+using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-public class SigiClient
+public class SigiServer
 {
     private readonly string IpAddress = "0.0.0.0";
     private readonly int port = 3000;
@@ -88,7 +89,7 @@ public class SigiClient
 
     public List<string> GetPlayerMovement()
     {
-        return [GetPlayerPosition(), GetPlayerRotation()];
+        return new List<string> {GetPlayerPosition(),GetPlayerRotation()};
     }
 
     public int GetPlayerCount()

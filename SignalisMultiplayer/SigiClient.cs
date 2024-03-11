@@ -1,12 +1,11 @@
-﻿using System.Net;
-using System.Net.Sockets;
+﻿using System;
 using System.Text;
-using System;
 using System.Threading.Tasks;
-using System.Threading;
+using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Linq;
-public class SigiServer
+using System.Net;
+public class SigiClient
 {
     private int port = 3000;
     private TcpClient TcpMainClient;
@@ -83,7 +82,7 @@ public class SigiServer
 
     public List<string> GetPlayerMovement()
     {
-        return [GetPlayerPosition(), GetPlayerRotation()];
+        return new List<string> { GetPlayerPosition(), GetPlayerRotation() };
     }
 
     // starts the client. takes one argument, which is the IP of the host. connects to port 3000.
