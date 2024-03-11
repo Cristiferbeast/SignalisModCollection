@@ -11,8 +11,8 @@ public class SigiClient
     private readonly int port = 3000;
     private TcpListener TcpServer;
     private UdpClient UdpServer;
-    private readonly List<string> MessageQueue = [];
-    private readonly List<Player> CurrentPlayers = [];
+    private readonly List<string> MessageQueue = new List<string>();
+    private readonly List<Player> CurrentPlayers = new List<Player>();
     private byte[] buffer;
     private byte IdAssigner = 1;
 
