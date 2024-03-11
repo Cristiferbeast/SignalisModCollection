@@ -10,12 +10,10 @@ public class SigiServer
 {
     private int port = 3000;
     private TcpClient TcpMainClient;
-
-    // if youre testing sending udp between programs within your pc, change this to port+1
     private UdpClient UdpMainClient;
     private List<string> MessageQueue = new List<string>();
+    private readonly List<Player> CurrentPlayers = new List<Player>();
     private byte[] buffer = new byte[128];
-    private readonly List<Player> CurrentPlayers = [];
 
     private class Player
     {
