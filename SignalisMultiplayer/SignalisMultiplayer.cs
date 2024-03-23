@@ -68,8 +68,9 @@ namespace SigiMultiplayer
                 storage.timer += 1;
                 if (storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = storage.server.GetMessage();
-                    MessageParse(recievedMessage);
+                    string recievedMessage = storage.server.GetPlayerMovement();
+                    MessageParse(recievedMessage[0]);
+                    MessageParse(recievedMessage[1]);
                     foreach (string s in storage.BooleanQueue)
                     {
                         MessageParse(s);
@@ -92,8 +93,9 @@ namespace SigiMultiplayer
                 }
                 if (!storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = storage.client.GetMessage();
-                    MessageParse(recievedMessage);
+                    string recievedMessage = storage.client.GetPlayerMovement();
+                    MessageParse(recievedMessage[0]);
+                    MessageParse(recievedMessage[1]);
                     storage.MessageCollection.Clear();
                     SignalisMultiplayer.AddMessages();
                     if (storage.MessageCollection.Count > 0)
