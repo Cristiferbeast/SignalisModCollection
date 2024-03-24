@@ -4,14 +4,13 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 public class SigiClient
 {
     private int port = 3000;
     private TcpClient TcpMainClient;
     private UdpClient UdpMainClient;
     private readonly List<string> MessageQueue = new List<string>();
-    private readonly List<Player> CurrentPlayers = new List<Player>();
+    private readonly List<Player> CurrentPlayers = new List<Player>( );
     private byte[] buffer = new byte[128];
 
     private class Player
@@ -21,8 +20,8 @@ public class SigiClient
         public string PlayerRotation { get; set; }
         public Player(byte Id)
         {
-            PlayerPosition = "";
-            PlayerRotation = "";
+            PlayerPosition = "placeholder";
+            PlayerRotation = "placeholder";
             PlayerID = Id;
         }
     }
@@ -226,8 +225,10 @@ public class SigiClient
                 case 'Q':
                     CurrentPlayers[0].PlayerRotation = Message;
                     break;
+                default:
+                    MessageQueue.Add(ParsedMessage[i]);
+                    break;
             }
-            MessageQueue.Add(ParsedMessage[i]);
         }
     }
 }

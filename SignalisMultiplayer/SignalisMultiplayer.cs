@@ -18,7 +18,8 @@ namespace SigiMultiplayer
         public GameObject EllieMain;
         public Vector3 l;
         public Quaternion r;
-        public List<string> MessageCollection = new List<string>(){};
+        public List<string> StoredMessgaes = new List<string>() { };
+        public List<string> MessageCollection = new List<string>() { };
         public List<string> BooleanQueue = new List<string>();
 
         //Boolean Variables
@@ -26,7 +27,7 @@ namespace SigiMultiplayer
         public List<bool> BooleanList = new List<bool>() { false, false, false };
         public Dictionary<int, GameObject> ActiveEnemyList = new Dictionary<int, GameObject>() { }; //used by boolean handler to store active enemies 
         public Dictionary<int, GameObject> ManagedEnemies = new Dictionary<int, GameObject> { }; //used by Enemy Handler
-        public Dictionary<int,string> TemporaryEnemyData = new Dictionary<int, string> { };
+        public Dictionary<int, string> TemporaryEnemyData = new Dictionary<int, string> { };
 
         //Readable Server Variables
         public bool host;
@@ -68,49 +69,11 @@ namespace SigiMultiplayer
                 storage.timer += 1;
                 if (storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = storage.server.GetPlayerMovement();
-                    MessageParse(recievedMessage[0]);
-                    MessageParse(recievedMessage[1]);
-                    foreach (string s in storage.BooleanQueue)
-                    {
-                        MessageParse(s);
-                    }
-                    storage.MessageCollection.Clear();
-                    SignalisMultiplayer.AddMessages();
-                    if (storage.MessageCollection.Count > 0)
-                    {
-                        string send = "";
-                        foreach (string responseMessage in storage.MessageCollection)
-                        {
-                            send += $"~{responseMessage}";
-                        }
-                        if (send != "")
-                        {
-                            storage.server.UdpServerUpdate(send);
-                        }
-                    }
-                    storage.timer -= storage.delay;
+                    MessageCentral(true);
                 }
                 if (!storage.host && storage.timer > storage.delay)
                 {
-                    string recievedMessage = storage.client.GetPlayerMovement();
-                    MessageParse(recievedMessage[0]);
-                    MessageParse(recievedMessage[1]);
-                    storage.MessageCollection.Clear();
-                    SignalisMultiplayer.AddMessages();
-                    if (storage.MessageCollection.Count > 0)
-                    {
-                        string send = "";
-                        foreach (string responseMessage in storage.MessageCollection)
-                        {
-                            send += $"~{responseMessage}";
-                        }
-                        if (send != "")
-                        {
-                            storage.client.UdpClientUpdate(send);
-                        }
-                    }
-                    storage.timer -= storage.delay;
+                    MessageCentral(false);
                 }
             }
         }
@@ -148,12 +111,66 @@ namespace SigiMultiplayer
             return storage;
         }
         //Central Runtime - Sending Messages
+        public static void MessageCentral(bool host)
+        {
+            foreach (string s in storage.BooleanQueue)
+            {
+                MessageParse(s);
+            }
+            if (host)
+            {
+                if(storage.server.GetPlayerCount() != 0)
+                {
+                    List<string> Movement = storage.server.GetPlayerMovement();
+                    MessageParse(Movement[0]);
+                    MessageParse(Movement[1]);
+                }
+                storage.MessageCollection.Clear();
+                SignalisMultiplayer.AddMessages();
+                if (storage.MessageCollection.Count > 0)
+                {
+                    string send = "";
+                    foreach (string responseMessage in storage.MessageCollection)
+                    {
+                        send += $"~{responseMessage}";
+                    }
+                    if (send != "")
+                    {
+                        storage.server.UdpServerUpdate(send);
+                    }
+                }
+            }
+            else
+            {
+                if (storage.server.GetPlayerCount() != 0)
+                {
+                    List<string> Movement = storage.server.GetPlayerMovement();
+                    MessageParse(Movement[0]);
+                    MessageParse(Movement[1]);
+                }
+                storage.MessageCollection.Clear();
+                SignalisMultiplayer.AddMessages();
+                if (storage.MessageCollection.Count > 0)
+                {
+                    string send = "";
+                    foreach (string responseMessage in storage.MessageCollection)
+                    {
+                        send += $"~{responseMessage}";
+                    }
+                    if (send != "")
+                    {
+                        storage.client.UdpClientUpdate(send);
+                    }
+                }
+            }
+            storage.timer -= storage.delay;
+        }
         public static void MessageParse(string recievedMessage)
         {
             if (recievedMessage != null && recievedMessage != "")
             {
                 SignalisMultiplayer.HandleMessage(recievedMessage);
-            } 
+            }
         }
         public static void EllieSetUp()
         {
@@ -230,7 +247,7 @@ namespace SigiMultiplayer
             {
                 List<Vector3> VList = new List<Vector3>() { };
                 Vector3 e = storage.EllieMain.transform.position;
-                if(storage.l == null)
+                if (storage.l == null)
                 {
                     storage.l = e;
                     return null;
@@ -438,7 +455,7 @@ namespace SigiMultiplayer
             }
             else if (message.StartsWith("Q:"))
             {
-                ApplyQuaternion(storage.EllieClone, message); 
+                ApplyQuaternion(storage.EllieClone, message);
             }
             else if (message.StartsWith("B:"))
             {
@@ -492,7 +509,7 @@ namespace SigiMultiplayer
                     if (!storage.BooleanList[0])
                     {
                         GameObject Chunk = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject;
-                        if(Chunk == null)
+                        if (Chunk == null)
                         {
                             storage.BooleanQueue.Add(message);
                             return;
@@ -506,7 +523,7 @@ namespace SigiMultiplayer
                     if (!storage.BooleanList[1])
                     {
                         GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("Pen_CockpitEvent3D").gameObject;
-                        if(Chunk == null)
+                        if (Chunk == null)
                         {
                             storage.BooleanQueue.Add(message);
                             return;
@@ -543,30 +560,30 @@ namespace SigiMultiplayer
         }
         public static void ApplyVector(GameObject item, string message)
         {
-             //Handles Vector Transforms Passed by Server, To Be Used if Ellie Moves
-                int openParenIndex = message.IndexOf('(');
-                int closeParenIndex = message.IndexOf(')');
-                if (openParenIndex != -1 && closeParenIndex != -1 && closeParenIndex > openParenIndex)
+            //Handles Vector Transforms Passed by Server, To Be Used if Ellie Moves
+            int openParenIndex = message.IndexOf('(');
+            int closeParenIndex = message.IndexOf(')');
+            if (openParenIndex != -1 && closeParenIndex != -1 && closeParenIndex > openParenIndex)
+            {
+                string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
+                string[] numberStrings = numbersPart.Split(',');
+                if (numberStrings.Length == 3)
                 {
-                    string numbersPart = message.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
-                    string[] numberStrings = numbersPart.Split(',');
-                    if (numberStrings.Length == 3)
+                    if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
                     {
-                        if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
-                        {
-                            Vector3 vector = new Vector3(x, y, z);
-                            item.transform.position = vector;
-                        }
-                        else
-                        {
-                            MelonLoader.MelonLogger.Msg("Error parsing numbers.");
-                        }
+                        Vector3 vector = new Vector3(x, y, z);
+                        item.transform.position = vector;
                     }
                     else
                     {
-                        MelonLoader.MelonLogger.Msg("Expected 3 numbers.");
+                        MelonLoader.MelonLogger.Msg("Error parsing numbers.");
                     }
                 }
+                else
+                {
+                    MelonLoader.MelonLogger.Msg("Expected 3 numbers.");
+                }
+            }
         }
         public static void ApplyQuaternion(GameObject item, string message)
         {
@@ -603,14 +620,14 @@ namespace SigiMultiplayer
         public static GameObject ApplyEnemy(bool boolean, int tag)
         {
             GameObject returnvalue;
-            switch(tag)
+            switch (tag)
             {
                 case 1:
                     returnvalue = new GameObject();
                     break;
                 default:
                     returnvalue = null;
-                break;
+                    break;
             }
             return returnvalue;
         }

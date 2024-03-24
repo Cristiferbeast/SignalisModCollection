@@ -28,9 +28,14 @@ public class SigiServer
         {
             PlayerTcpClient = tcpClient;
             PlayerUdpClient = udpClient;
-            PlayerPosition = "";
-            PlayerRotation = "";
+            PlayerPosition = "placeholder";
+            PlayerRotation = "placeholder";
             PlayerID = Id;
+        }
+        public Player()
+        {
+            PlayerPosition = "placeholder";
+            PlayerRotation = "placeholder";
         }
     }
 
@@ -105,7 +110,7 @@ public class SigiServer
         TcpServer = new TcpListener(IPAddress.Parse(IpAddress), port);
         UdpServer = new UdpClient(port);
         TcpServer.Start();
-
+        
         // handle UDP messages
         _ = UdpMessageHandler();
 
@@ -123,17 +128,20 @@ public class SigiServer
     // sends a string to the client. messages start with the tilde (~) key to be parsed better.
     public void TcpServerUpdate(string msg)
     {
-        try
+        if(TcpServer != null)
         {
-            buffer = Encoding.ASCII.GetBytes(msg);
-            foreach (Player player in CurrentPlayers)
+            try
             {
-                player.PlayerTcpClient.GetStream().WriteAsync(buffer, 0, buffer.Length);
+                buffer = Encoding.ASCII.GetBytes(msg);
+                foreach (Player player in CurrentPlayers)
+                {
+                    player.PlayerTcpClient.GetStream().WriteAsync(buffer, 0, buffer.Length);
+                }
             }
-        }
-        catch (Exception error)
-        {
-            Console.WriteLine("error in ServerUpdate() -> " + error);
+            catch (Exception error)
+            {
+                Console.WriteLine("error in ServerUpdate() -> " + error);
+            }
         }
     }
     public void UdpServerUpdate(string msg)
