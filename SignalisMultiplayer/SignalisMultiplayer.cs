@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -21,6 +22,8 @@ namespace SigiMultiplayer
         public List<string> StoredMessgaes = new List<string>() { };
         public List<string> MessageCollection = new List<string>() { };
         public List<string> BooleanQueue = new List<string>();
+        public bool isMoving;
+        public Animator ellieAnimator;
 
         //Boolean Variables
         public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall" }; //we do not need rooms without boolean values
@@ -113,10 +116,17 @@ namespace SigiMultiplayer
         //Central Runtime - Sending Messages
         public static void MessageCentral(bool host)
         {
-            foreach (string s in storage.BooleanQueue)
+            if (storage.BooleanQueue != null)
             {
-                MessageParse(s);
+                if(storage.BooleanQueue.Count() != 0)
+                {
+                    foreach (string s in storage.BooleanQueue)
+                    {
+                        MessageParse(s);
+                    }
+                }
             }
+
             if (host)
             {
                 if(storage.server.GetPlayerCount() != 0)
@@ -142,12 +152,9 @@ namespace SigiMultiplayer
             }
             else
             {
-                if (storage.server.GetPlayerCount() != 0)
-                {
-                    List<string> Movement = storage.server.GetPlayerMovement();
-                    MessageParse(Movement[0]);
-                    MessageParse(Movement[1]);
-                }
+                List<string> Movement = storage.client.GetPlayerMovement();
+                MessageParse(Movement[0]);
+                MessageParse(Movement[1]);
                 storage.MessageCollection.Clear();
                 SignalisMultiplayer.AddMessages();
                 if (storage.MessageCollection.Count > 0)
@@ -184,6 +191,18 @@ namespace SigiMultiplayer
                     storage.EllieMain = root.transform.Find("Ellie_Default").gameObject;
                     storage.EllieClone = UnityEngine.Object.Instantiate(storage.EllieMain);
                     storage.EllieClone.GetComponent<Anchor>().enabled = false;
+                    //set up Animator 
+                    try
+                    {
+                        UnityEngine.Animator Animator = root.GetComponent<UnityEngine.Animator>();
+                        storage.ellieAnimator = storage.EllieClone.AddComponent<Animator>();
+                        storage.ellieAnimator = Animator; //this gives us a copy of Ellie's Animator
+                    }
+                    catch
+                    {
+                        MelonLogger.Msg("Animator Set Up Failed");
+                    }
+                    //set Storage Positions
                     if (storage.EllieClone == null) { storage.active = false; MelonLogger.Msg("Ellie is Null"); return; }
                     try
                     {
@@ -332,6 +351,10 @@ namespace SigiMultiplayer
                         return storage.PENWreckRooms.IndexOf(s); //this isnt flawless, and may interfere with other things in export requiring reformatting 
                     }
                 }
+                else
+                {
+                    MelonLogger.Msg("One of the Rooms is Null, Potential Issue in Implementation");
+                }
             }
             return 0;
         }
@@ -465,7 +488,7 @@ namespace SigiMultiplayer
             {
                 EnemyMessageReaderPrime(message);
             }
-            else if (message == "")
+            else if (message == "" || message == "placeholder") 
             {
             }
             else
@@ -512,8 +535,10 @@ namespace SigiMultiplayer
                         if (Chunk == null)
                         {
                             storage.BooleanQueue.Add(message);
+                            MelonLogger.Msg("Bool Qued");
                             return;
                         }
+                        MelonLogger.Msg("Bool Used");
                         PEN_Cryo Cryo = Chunk.transform.Find("Cryo").gameObject.transform.GetComponent<PEN_Cryo>();
                         Cryo.Open(); //Plays Cutscene Fixes Boolean Mismatch
                         storage.BooleanList[0] = boolean; //this is set true when the value is true
@@ -526,8 +551,10 @@ namespace SigiMultiplayer
                         if (Chunk == null)
                         {
                             storage.BooleanQueue.Add(message);
+                            MelonLogger.Msg("Bool Qued");
                             return;
                         }
+                        MelonLogger.Msg("Bool Used");
                         GameObject Cockpit = Chunk.transform.Find("Interactions").gameObject;
                         if (Cockpit.transform.Find("PhotoPickup") != null)
                         {
@@ -544,6 +571,7 @@ namespace SigiMultiplayer
                         if (Ducttape == null)
                         {
                             storage.BooleanQueue.Add(message);
+                            MelonLogger.Msg("Bool Qued");
                             return;
                         }
                         if (Ducttape.transform.Find("TapePickup") != null)
@@ -551,6 +579,11 @@ namespace SigiMultiplayer
                             Ducttape.transform.Find("TapePickup").gameObject.transform.GetComponent<ItemPickup>().pickUp();
                             Ducttape.transform.Find("TapePickup").gameObject.SetActive(false);
                             storage.BooleanList[2] = boolean;
+                        }
+                        else
+                        {
+                            storage.BooleanList[2] = boolean;
+                            MelonLogger.Msg("Already Obtained Tape?");
                         }
                     }
                     break;
@@ -572,6 +605,16 @@ namespace SigiMultiplayer
                     if (float.TryParse(numberStrings[0].Trim(), out float x) && float.TryParse(numberStrings[1].Trim(), out float y) && float.TryParse(numberStrings[2].Trim(), out float z))
                     {
                         Vector3 vector = new Vector3(x, y, z);
+                        if(item.transform.position != vector && !storage.isMoving)
+                        {
+                            storage.ellieAnimator.Play("Elster_Run_Unarmed");
+                            storage.isMoving = true;
+                        }
+                        if(item.transform.position == vector && storage.isMoving)
+                        {
+                            storage.ellieAnimator.StopPlayback();
+                            storage.isMoving = false;
+                        }
                         item.transform.position = vector;
                     }
                     else
