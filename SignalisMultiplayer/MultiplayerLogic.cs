@@ -3,12 +3,11 @@ using System;
 using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
-using SigiMultiplayer;
-using System.Linq;
+using UnityEngine.SceneManagement;
 
 namespace SigiMP
-{
-    public class MultiplayerLogic
+{ }
+    /*public class MultiplayerLogic
     {
         //State Varibales
         public bool Status = false;
@@ -35,9 +34,11 @@ namespace SigiMP
         public Vector3 l; //location
         public Quaternion r; //roation
         public GameObject BuiltLogic; //logic handler
+        public Scene CurrentScene;
+        public bool SwapScene = false;
 
         //Set Up
-        public MultiplayerLogic()
+        public void MultiplayerSetUp()
         {
             //sets up this item to allow for a central storage point
             MelonLogger.Msg("Storage Created");
@@ -77,6 +78,7 @@ namespace SigiMP
         }
         virtual public void SetStoredLocation(GameObject PlayerObject)
         {
+            MelonLogger.Msg("Setting Stored Location");
             //stores player location
             try
             {
@@ -88,7 +90,6 @@ namespace SigiMP
                 MelonLogger.Msg("Failure due to Storage of Postional Storing");
             }
         }
-
         //Message Readers
         virtual public List<Vector3> CheckVector(GameObject gameObject, Vector3 l)
         {
@@ -142,6 +143,10 @@ namespace SigiMP
         //Message Handlers
         virtual public void MessageCentral(bool state)
         {
+            if(SceneManager.GetActiveScene() != CurrentScene)
+            {
+                SwapScene = true;
+            }
             if (host)
             {
                 if (MessageCollection.Count > 0)
@@ -235,3 +240,4 @@ namespace SigiMP
         }
     }
 }
+*/

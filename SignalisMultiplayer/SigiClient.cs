@@ -4,14 +4,17 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Linq;
+using MelonLoader;
 public class SigiClient
 {
     private int port = 3000;
     private TcpClient TcpMainClient;
     private UdpClient UdpMainClient;
+    public List<string> BList = new List<string>();
     private readonly List<string> MessageQueue = new List<string>();
-    private readonly List<Player> CurrentPlayers = new List<Player>( );
+    private readonly List<Player> CurrentPlayers = new List<Player>();
     private byte[] buffer = new byte[128];
+    public bool ConnectionStatus;
 
     private class Player
     {
@@ -98,10 +101,12 @@ public class SigiClient
         {
             _ = UdpMessageHandler();
             _ = TcpMessageHandler(TcpMainClient);
+            ConnectionStatus = true;
         }
         catch (Exception error)
         {
             Console.WriteLine("error in StartClient() -> " + error);
+            ConnectionStatus = false;
         }
         Console.WriteLine("listening on port 3000");
     }
@@ -119,6 +124,7 @@ public class SigiClient
             catch (Exception error)
             {
                 Console.WriteLine("error in TcpServerUpdate() -> " + error);
+
             }
         }
     }
@@ -200,6 +206,7 @@ public class SigiClient
             catch (System.IO.IOException)
             {
                 Console.WriteLine("lost connection with server. they might've shut down the server!");
+                ConnectionStatus = false;
             }
             catch (Exception error)
             {
@@ -226,7 +233,8 @@ public class SigiClient
                     CurrentPlayers[0].PlayerRotation = Message;
                     break;
                 default:
-                    MessageQueue.Add(ParsedMessage[i]);
+                    MelonLogger.Msg(Message);
+                    BList.Add(Message);
                     break;
             }
         }

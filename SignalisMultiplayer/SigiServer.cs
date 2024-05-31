@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
+using MelonLoader;
 public class SigiServer
 {
     private readonly string IpAddress = "0.0.0.0";
@@ -13,6 +14,7 @@ public class SigiServer
     private TcpListener TcpServer;
     private UdpClient UdpServer;
     private readonly List<string> MessageQueue = new List<string>();
+    public List<string> BList = new List<string>();
     private readonly List<Player> CurrentPlayers = new List<Player>();
     private byte[] buffer;
     private byte IdAssigner = 1;
@@ -94,7 +96,7 @@ public class SigiServer
 
     public List<string> GetPlayerMovement()
     {
-        return new List<string> {GetPlayerPosition(),GetPlayerRotation()};
+        return new List<string> { GetPlayerPosition(), GetPlayerRotation() };
     }
 
     public int GetPlayerCount()
@@ -110,7 +112,7 @@ public class SigiServer
         TcpServer = new TcpListener(IPAddress.Parse(IpAddress), port);
         UdpServer = new UdpClient(port);
         TcpServer.Start();
-        
+
         // handle UDP messages
         _ = UdpMessageHandler();
 
@@ -128,7 +130,7 @@ public class SigiServer
     // sends a string to the client. messages start with the tilde (~) key to be parsed better.
     public void TcpServerUpdate(string msg)
     {
-        if(TcpServer != null)
+        if (TcpServer != null)
         {
             try
             {
@@ -294,8 +296,11 @@ public class SigiServer
                 case 'Q':
                     CurrentPlayers[0].PlayerRotation = Message;
                     break;
+                default:
+                    MelonLogger.Msg(Message);
+                    BList.Add(Message);
+                    break;
             }
-            MessageQueue.Add(ParsedMessage[i]);
         }
     }
 }
