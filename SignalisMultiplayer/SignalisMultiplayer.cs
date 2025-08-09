@@ -1,8 +1,9 @@
 ﻿using MelonLoader;
-using Rotorz.Tile;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,42 +11,43 @@ namespace SigiMultiplayer
 {
     public class Storage
     {
+        //Variables for Mod
+        public float delay = 2; //Sets the Delay 
+        public float timer = 0; //Records the Delay
+        public bool failsafe;
+        public bool active = false; //Defines Active State of Mod
+        public bool EllieState = true;
+        public GameObject EllieClone;
+        public GameObject EllieMain;
+        public Vector3 l;
+        public Quaternion r;
+        public List<string> StoredMessgaes = new List<string>() { };
+        public List<string> MessageCollection = new List<string>() { };
+        public List<string> BooleanQueue = new List<string>();
+        public List<string> BooleanStorage = new List<string>();
+        public Cheats Cheats;
+
+        //Boolean Variables
+        public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall", "Personell" }; //we do not need rooms without boolean values
+        public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
+        public List<bool> BooleanList = Enumerable.Repeat(false, 60).ToList();
+        public Dictionary<int, GameObject> ActiveEnemyList = new Dictionary<int, GameObject>() { }; //used by boolean handler to store active enemies 
+        public Dictionary<int, GameObject> ManagedEnemies = new Dictionary<int, GameObject> { }; //used by Enemy Handler
+        public Dictionary<int, string> TemporaryEnemyData = new Dictionary<int, string> { };
+        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers" };
+        public List<string> EnemyData = new List<string>(); //used for storing enemy data
+        public List<bool> EnemyBooleans = Enumerable.Repeat(false, 100).ToList(); //used for enemy states
+        public List<int> EnemyHP = Enumerable.Repeat(0, 100).ToList(); //used for Enemy HP
+        public bool inCutscene = false; //used for Raina Checks
+
         //Readable Server Variables
         public bool host;
         public int ServerPort;
         public string url;
         public SigiClient client;
         public SigiServer server;
+        public string scenename;
 
-        //Variables for Mod
-        public float delay = 2; //Sets the Delay 
-        public float timer = 0; //Records the Delay
-        public int referencesize = 2; //Helps With Boolean Storage from being a Manual Issue.
-
-        //Protective Variables
-        public bool failsafe; //Actives if Failure Occurs
-        public bool active = false; //Defines Active State of Mod
-        public bool EllieState = true; //Checks if Ellie is Active, Responds Appropriatively if she is not
-
-        //Stored Variables
-        public GameObject EllieClone;
-        public GameObject EllieMain;
-        public Vector3 l; 
-        public Quaternion r;
-        public Cheats Cheats;
-        public string scenename; //used to track active scene
-        public bool inCutscene = false; //used for Raina Checks
-
-        //Boolean Variables
-        public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall", "Personell" }; //we do not need rooms without boolean values
-        public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
-        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers" };
-        public List<bool> BooleanList = Enumerable.Repeat(false, 60).ToList(); //used for boolean state
-        public List<string> BooleanQueue = new List<string>(); //used for storing booleans that cant be activated yet
-        public List<string> MessageCollection = new List<string>() { }; //used for collecting messages to be sent
-        public List<string> EnemyData = new List<string>(); //used for storing enemy data
-        public List<bool> EnemyBooleans = Enumerable.Repeat(false, 100).ToList(); //used for enemy states
-        public List<int> EnemyHP = Enumerable.Repeat(0, 100).ToList(); //used for Enemy HP
     }
     public class SignalisMultiplayer : MelonMod
     {
@@ -145,7 +147,6 @@ namespace SigiMultiplayer
             {
                 storage.client = new SigiClient();
             }
-
             return storage;
         }
         public static bool EllieSetUp(bool log = true)
@@ -192,9 +193,9 @@ namespace SigiMultiplayer
             {
                 storage.Cheats = GameObject.FindObjectOfType<Cheats>();
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
-                MelonLogger.Msg("Fialure to Collect Cheat Device due to " + e.StackTrace);
+                MelonLogger.Msg("Failure to Collect Cheat Device due to " + e.StackTrace);
             }
             MelonLogger.Msg("Ellie Established");
             return true;
@@ -221,10 +222,6 @@ namespace SigiMultiplayer
                     foreach (string responseMessage in storage.MessageCollection)
                     {
                         send += $"~{responseMessage}";
-                    }
-                    foreach (string enemy in storage.EnemyData)
-                    {
-                        send += $"~{enemy}";
                     }
                     if (send != "")
                     {
@@ -273,10 +270,6 @@ namespace SigiMultiplayer
                 foreach (string responseMessage in storage.MessageCollection)
                 {
                     send += $"~{responseMessage}";
-                }
-                foreach (string enemy in storage.EnemyData)
-                {
-                    send += $"~{enemy}";
                 }
                 if (send != "" || send != "~")
                 {
@@ -339,7 +332,7 @@ namespace SigiMultiplayer
             }
             else if (message.StartsWith("E:"))
             {
-                EnemyApply(message);
+                EnemyMessageReaderPrime(message);
             }
             else if (message == "")
             {
@@ -350,15 +343,13 @@ namespace SigiMultiplayer
             }
         }
 
-
-        //Safety Checks
         public static void SceneCheck(Storage storage)
         {
             if (storage.active && storage.EllieState)
             {
                 if (SceneManager.GetActiveScene().name != storage.scenename)
                 {
-                    storage.EllieState = EllieSetUp();
+                    try {storage.EllieState = EllieSetUp(); } catch(Exception e) { MelonLogger.Log("Failure on Resetting Up Ellie"); };
                     if (!storage.EllieState)
                     {
                         storage.active = false;
@@ -368,15 +359,6 @@ namespace SigiMultiplayer
                 }
             }
         }
-        public static bool RainaCheck(Storage storage)
-        {
-            if (PlayerState.cutscene)
-            {
-                return false;
-            }
-            return true;
-        }
-
         //Read
         public static void AddMessages()
         {
@@ -473,6 +455,9 @@ namespace SigiMultiplayer
                             }
                         }
                         catch {  /*unused debugging due to it working*/   }
+                    }
+                    if (!storage.BooleanList[5])
+                    {
                         try
                         {
                             GameObject Chunk = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject;
@@ -617,9 +602,6 @@ namespace SigiMultiplayer
                     }
                     break;
                 case 5:
-                    //This is Enemy Handling - Very Experimental
-                    EnemyManager Enemy = GameObject.Find("WestCorridor").transform.Find("Enemy Manager").gameObject.GetComponent<EnemyManager>();
-                    EnemyInformation(Enemy, 0);
                     break;
                 case 6:
                     if (!storage.BooleanList[10])
@@ -765,7 +747,7 @@ namespace SigiMultiplayer
                 }
                 Vector3 l = storage.l;
                 float difference = e.z - l.z; //if l > - if e > +
-                if (System.Math.Abs(difference) < 1)
+                if (Math.Abs(difference) < 1)
                 {
                     //if e.z - l.z or new - old < 10 that means slight variation so set e(new) to l(old)
                     e.z = l.z;
@@ -782,7 +764,7 @@ namespace SigiMultiplayer
                     return null;
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 MelonLogger.Msg("Failure on 453-Check Vector " + ex.Message + ex.StackTrace);
                 return null;
@@ -923,7 +905,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[0])
                         {
                             GameObject Chunk = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -939,7 +921,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[1])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("Pen_CockpitEvent3D").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -958,7 +940,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[2])
                         {
                             GameObject Ducttape = GameObject.Find("Events").gameObject.transform.Find("PEN_PC").gameObject;
-                            if (Ducttape == null || RainaCheck(storage))
+                            if (Ducttape == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -979,7 +961,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[4])
                         {
                             GameObject Chunk = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -994,7 +976,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[5])
                         {
                             GameObject Chunk = GameObject.Find("Surface Access").gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1010,7 +992,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[6])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_GuardOffice").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1048,7 +1030,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[8])
                         {
                             GameObject Chunk = GameObject.Find(storage.LOVReEducationRooms[4]).gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1073,7 +1055,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[10])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_ClassSafe").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1087,7 +1069,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[11])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_GuardOffice").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1108,7 +1090,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[12])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_ClassSafe").gameObject;
-                            if (Chunk == null || RainaCheck(storage))
+                            if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1119,6 +1101,8 @@ namespace SigiMultiplayer
                             return true;
                         }
                         return false;
+                    default:
+                        return true;
                     case 14:
                         //Office - East Key
                         if (!storage.BooleanList[13])
@@ -1201,61 +1185,14 @@ namespace SigiMultiplayer
                             return true;
                         }
                         return false;
-                    default:
-                        return true;
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 MelonLogger.Error(e.StackTrace + e.Message + e.Source);
                 MelonLogger.Msg(tag + message);
                 return false;
             }
-        }
-        public static bool EnemyApply(string input)
-        {
-            string[] parts = input.Split('>'); //parts 0 = E: 
-            int referencenum = int.Parse(parts[1]);
-            bool alive = bool.Parse(parts[2]);
-            int damage = int.Parse(parts[3]);
-            bool result = EnemyApply(referencenum, alive, damage, input);
-            return result;
-        }
-        public static bool EnemyApply(int reference, bool alive, int damage, string input)
-        {
-            GameObject Chunk = null;
-            int index = 0;
-            switch(reference)
-            {
-                case 1:
-                    Chunk = GameObject.Find("WestCorridor").transform.Find("Enemy Manager").gameObject;
-                    if (Chunk == null || !Chunk.active)
-                    {
-                        storage.BooleanQueue.Add(input);
-                        return false;
-                    }
-                    index = 0;
-                    break;
-                default:
-                    break;
-            }
-            if (Chunk == null)
-            {
-                storage.BooleanQueue.Add(input);
-                return false;
-            }
-            EnemyController EnemyController = Chunk.GetComponent<EnemyManager>().enemies[index];
-            bool result = EnemyApply(EnemyController, alive, damage);
-            return result;
-        }
-        public static bool EnemyApply(EnemyController enemy, bool alive, int damage)
-        {
-            if (!alive)
-            {
-                enemy.oldHP = 0;
-            }
-            enemy.oldHP -= damage;
-            return false;
         }
 
         //Handles End State
@@ -1264,93 +1201,8 @@ namespace SigiMultiplayer
         }
 
 
-        //Planned for 0.11.0 
-        public static void EnemyInformation(EnemyManager Manager, int offset)
-        {
-            int eindex = 0;
-            List<string> EnemyDetails = new List<string>();
-            foreach (EnemyController enemy in Manager.enemies)
-            {
-                int reference = (storage.referencesize * offset) + eindex;
-                //the 0 represents the inital offset
-                //This will return all active enemies that are present.
-                //There are several pieces of data we need about enemies that can be used to construct a data type. 
-                //Dead 0,1 Postition V, Rotation R, Active Target, HP Status. These should be checked in order of Priority.
-                string temp = EnemyInformation(enemy, reference);
-                if (temp != "E:" || temp != "")
-                {
-                    EnemyDetails.Add(temp);
-                }
-                eindex++; // done on each to create an index
-            }
-            foreach (string edetail in EnemyDetails)
-            {
-                if (EnemyDetails != null || EnemyDetails.Count != 0)
-                {
-                    storage.EnemyData.Add(edetail);
-                }
-            }
-        }
-        public static string EnemyInformation(EnemyController enemy, int reference) { 
-            string output = "E:>" + reference.ToString();
-            if (enemy.oldHP == 0)
-            {
-                //this is **always** true when the Target is dead so send message that it is dead.
-                output += ">B:0"; // > will be used for parsing, while 0 means dead
-                storage.EnemyBooleans[reference] = false;
-            }
-            else
-            {
-                output += ">B:1";
-                storage.EnemyBooleans[reference] = true;
-            }
-            //next we need position however we only need it if enemy is alive. Its important that if enemy is alive that we know that. 
-            if (storage.EnemyBooleans[reference])  //Enemies have several variables under their reference codes, these need to be set carefully.
-            {
-                //the first value is the living state if its true we need to update data 
-                //output += ">V:" + enemy.gameObject.transform.position.ToString(); //extra steps...maybe but its worth it to avoid bugs
-                //output += ">Q:" + enemy.gameObject.transform.rotation.ToString();
-                //this code above in theory would handle if one player needs to send out data to the other however there are 3 facts that make this not optimal
-                // 1. Enemies can do targeting and we can mess w that
-                // 2. No Animations due to the Issues Related to This Method and Manual Prescribement
-                // 3. This would have to create primacy something we like to avoid.
-
-                //instead lets make use of the info we have
-                //we cannot directly compare Vector 3s, instead we must make a way to compare them.
-                //it may be that we only want this happening on one pc, as both dont necessarily need to do it - lets see it in practice before deciding
-                float playeradist = Mathf.Abs(enemy.gameObject.transform.position.y - storage.EllieMain.transform.position.y) + Mathf.Abs(enemy.gameObject.transform.position.x - storage.EllieMain.transform.position.x); 
-                float playerbdist = Mathf.Abs(enemy.gameObject.transform.position.y - storage.EllieClone.transform.position.y) + Mathf.Abs(enemy.gameObject.transform.position.x - storage.EllieClone.transform.position.x);
-                if(playeradist > playerbdist && !storage.EnemyBooleans[reference + 1])
-                {
-                    storage.EnemyBooleans[reference + 1] = true;
-                    enemy.playerPos = storage.EllieMain.transform;  
-                }
-                if(playeradist < playerbdist && storage.EnemyBooleans[reference + 1])
-                {
-                    storage.EnemyBooleans[reference + 1] = false;
-                    enemy.playerPos = storage.EllieClone.transform;
-                }
-                //The Second Value is set as who has priority, Priority is based off current input, this may be changed eventually but means that a read must reverse the results.
-                //asides from priority we must also check damage. There are two ways we can do this, for the sake of reducing message sizes lets do the way that only sends when needed
-                if (storage.EnemyHP[reference] == 0)
-                {
-                    storage.EnemyHP[reference] = ((int)enemy.oldHP);
-                }
-                if (storage.EnemyHP[reference] > enemy.oldHP)
-                {
-                    //if HP is recovering shit has gone wrong idek wtf is happening in that case
-                    output += ">A:" + (storage.EnemyHP[reference] - enemy.oldHP).ToString();
-                    storage.EnemyHP[reference] = ((int)enemy.oldHP);
-                }
-            }
-            return output;
-        }
-
-        //Legacy 
-        /*public Dictionary<int, GameObject> ActiveEnemyList = new Dictionary<int, GameObject>() { }; //used by boolean handler to store active enemies 
-public Dictionary<int, GameObject> ManagedEnemies = new Dictionary<int, GameObject> { }; //used by Enemy Handler
-public Dictionary<int, string> TemporaryEnemyData = new Dictionary<int, string> { }; */
-        /*public static void EnemyReaderLogic()
+        //Planned for 0.10.0 
+        public static void EnemyReaderLogic()
         {
             //When an enemy is in a room, the boolean checker will add the value of that rooms enemy tag 
             if (storage.ActiveEnemyList.Count == 0)
@@ -1366,7 +1218,7 @@ public Dictionary<int, string> TemporaryEnemyData = new Dictionary<int, string> 
         {
             if (Enemy == null)
             {
-                System.Console.WriteLine("Enemy Returned Null Error");
+                Console.WriteLine("Enemy Returned Null Error");
                 return null;
             }
             string Details = $"E:{tag + 1}>";
@@ -1428,6 +1280,13 @@ public Dictionary<int, string> TemporaryEnemyData = new Dictionary<int, string> 
             ApplyQuaternion(storage.ManagedEnemies[outtag], data[2]);
             SBoolApply(data[3]);
         }
-    }*/
+        public static bool RainaCheck(Storage storage)
+        {
+            if (PlayerState.cutscene)
+            {
+                return false;
+            }
+            return true;
+        }
     }
 }

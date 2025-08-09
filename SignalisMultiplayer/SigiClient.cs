@@ -90,153 +90,160 @@ public class SigiClient
     // starts the client. takes one argument, which is the IP of the host. connects to port 3000.
     public void StartClient(string url)
     {
-        TcpMainClient = new TcpClient(url, port);
-        UdpMainClient = new UdpClient(port);
-        UdpMainClient.Connect(url, port);
-
-        //add host to players
-        CurrentPlayers.Add(new Player(0));
-
         try
         {
-            _ = UdpMessageHandler();
-            _ = TcpMessageHandler(TcpMainClient);
-            ConnectionStatus = true;
+            try { TcpMainClient = new TcpClient(url, port); } catch (Exception e) { MelonLogger.Msg("Failure on TCP Client Creation, Check your IP URL :", e); ConnectionStatus = false; }
+            UdpMainClient = new UdpClient(port);
+            try { UdpMainClient.Connect(url, port); } catch (Exception e) { MelonLogger.Msg("Failure on UDP Client Connection, Check that the Host is Connected: ", e); ConnectionStatus = false; };
+
+                //add host to players
+                CurrentPlayers.Add(new Player(0));
+
+                try
+                {
+                    _ = UdpMessageHandler();
+                    _ = TcpMessageHandler(TcpMainClient);
+                    ConnectionStatus = true;
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine("error in StartClient() -> " + error);
+                    ConnectionStatus = false;
+                }
+                Console.WriteLine("listening on port 3000");
+            }
+            catch (System.Exception ex)
+            {
+                MelonLogger.Log("Failure in Client Start : ", ex);
+            }
         }
-        catch (Exception error)
-        {
-            Console.WriteLine("error in StartClient() -> " + error);
-            ConnectionStatus = false;
-        }
-        Console.WriteLine("listening on port 3000");
-    }
 
     // sends a string to the client. messages start with the tilde (~) key to be parsed better.
     public void TcpClientUpdate(string msg)
-    {
-        if (TcpMainClient != null && TcpMainClient.GetStream() != null)
         {
-            try
+            if (TcpMainClient != null && TcpMainClient.GetStream() != null)
             {
-                buffer = Encoding.ASCII.GetBytes(msg);
-                TcpMainClient.GetStream().WriteAsync(buffer, 0, buffer.Length);
-            }
-            catch (Exception error)
-            {
-                Console.WriteLine("error in TcpServerUpdate() -> " + error);
-
-            }
-        }
-    }
-    public void UdpClientUpdate(string msg)
-    {
-        if (UdpMainClient != null)
-        {
-            try
-            {
-                buffer = Encoding.ASCII.GetBytes(msg);
-                UdpMainClient.SendAsync(buffer, buffer.Length);
-            }
-            catch (Exception error)
-            {
-                Console.WriteLine("error in UdpServerUpdate() -> " + error);
-            }
-        }
-        else
-        {
-            Console.WriteLine("server not started :(");
-        }
-    }
-
-    /*
-    private functions!!
-    */
-
-    // handles receiving messages. always running until client disconnects.
-    private async Task UdpMessageHandler()
-    {
-        byte[] BufferForReceive = new byte[128];
-        if (UdpMainClient != null)
-        {
-            try
-            {
-                Boolean connected = true;
-                while (connected)
+                try
                 {
-                    BufferForReceive = new byte[128];
-                    UdpReceiveResult result = await UdpMainClient.ReceiveAsync();
-                    string ReceivedMessage = Encoding.ASCII.GetString(result.Buffer);
-                    AddMessageToQueue(ReceivedMessage);
-                    // Console.WriteLine($"server msg received: {ReceivedMessage}");
+                    buffer = Encoding.ASCII.GetBytes(msg);
+                    TcpMainClient.GetStream().WriteAsync(buffer, 0, buffer.Length);
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine("error in TcpServerUpdate() -> " + error);
+
                 }
             }
-            catch (Exception error)
+        }
+        public void UdpClientUpdate(string msg)
+        {
+            if (UdpMainClient != null)
             {
-                Console.WriteLine("error in UdpMessageHandler() for client -> " + error);
+                try
+                {
+                    buffer = Encoding.ASCII.GetBytes(msg);
+                    UdpMainClient.SendAsync(buffer, buffer.Length);
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine("error in UdpServerUpdate() -> " + error);
+                }
+            }
+            else
+            {
+                Console.WriteLine("server not started :(");
             }
         }
-    }
 
-    // handles receiving udp messages. always running until client disconnects.
-    private async Task TcpMessageHandler(TcpClient Client)
-    {
-        byte[] BufferForReceive = new byte[128];
-        NetworkStream stream = Client.GetStream();
-        using (Client)
+        /*
+        private functions!!
+        */
+
+        // handles receiving messages. always running until client disconnects.
+        private async Task UdpMessageHandler()
         {
-            try
+            byte[] BufferForReceive = new byte[128];
+            if (UdpMainClient != null)
             {
-                Boolean connected = true;
-                while (connected)
+                try
                 {
-                    BufferForReceive = new byte[128];
-                    int BytesRead = await stream.ReadAsync(BufferForReceive, 0, BufferForReceive.Length);
-                    if (BytesRead != 0)
+                    Boolean connected = true;
+                    while (connected)
                     {
-                        string ReceivedMessage = Encoding.ASCII.GetString(BufferForReceive, 0, BytesRead);
+                        BufferForReceive = new byte[128];
+                        UdpReceiveResult result = await UdpMainClient.ReceiveAsync();
+                        string ReceivedMessage = Encoding.ASCII.GetString(result.Buffer);
                         AddMessageToQueue(ReceivedMessage);
                         // Console.WriteLine($"server msg received: {ReceivedMessage}");
                     }
-                    else
-                    {
-                        connected = false;
-                    }
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine("error in UdpMessageHandler() for client -> " + error);
                 }
             }
-            catch (System.IO.IOException)
-            {
-                Console.WriteLine("lost connection with server. they might've shut down the server!");
-                ConnectionStatus = false;
-            }
-            catch (Exception error)
-            {
-                Console.WriteLine("error in TcpMessageHandler() ->" + error);
-            }
-            Client.Close();
         }
-    }
 
-    private void AddMessageToQueue(string RawMessage)
-    {
-        // we might not need this
-        string[] ParsedMessage = RawMessage.Split('~');
-        for (int i = 1; i < ParsedMessage.Length; i++)
+        // handles receiving udp messages. always running until client disconnects.
+        private async Task TcpMessageHandler(TcpClient Client)
         {
-            // we might add more to this table soon.
-            string Message = ParsedMessage[i];
-            switch (Message[0])
+            byte[] BufferForReceive = new byte[128];
+            NetworkStream stream = Client.GetStream();
+            using (Client)
             {
-                case 'V':
-                    CurrentPlayers[0].PlayerPosition = Message;
-                    break;
-                case 'Q':
-                    CurrentPlayers[0].PlayerRotation = Message;
-                    break;
-                default:
-                    MelonLogger.Msg(Message);
-                    BList.Add(Message);
-                    break;
+                try
+                {
+                    Boolean connected = true;
+                    while (connected)
+                    {
+                        BufferForReceive = new byte[128];
+                        int BytesRead = await stream.ReadAsync(BufferForReceive, 0, BufferForReceive.Length);
+                        if (BytesRead != 0)
+                        {
+                            string ReceivedMessage = Encoding.ASCII.GetString(BufferForReceive, 0, BytesRead);
+                            AddMessageToQueue(ReceivedMessage);
+                            // Console.WriteLine($"server msg received: {ReceivedMessage}");
+                        }
+                        else
+                        {
+                            connected = false;
+                        }
+                    }
+                }
+                catch (System.IO.IOException)
+                {
+                    Console.WriteLine("lost connection with server. they might've shut down the server!");
+                    ConnectionStatus = false;
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine("error in TcpMessageHandler() ->" + error);
+                }
+                Client.Close();
+            }
+        }
+
+        private void AddMessageToQueue(string RawMessage)
+        {
+            // we might not need this
+            string[] ParsedMessage = RawMessage.Split('~');
+            for (int i = 1; i < ParsedMessage.Length; i++)
+            {
+                // we might add more to this table soon.
+                string Message = ParsedMessage[i];
+                switch (Message[0])
+                {
+                    case 'V':
+                        CurrentPlayers[0].PlayerPosition = Message;
+                        break;
+                    case 'Q':
+                        CurrentPlayers[0].PlayerRotation = Message;
+                        break;
+                    default:
+                        MelonLogger.Msg(Message);
+                        BList.Add(Message);
+                        break;
+                }
             }
         }
     }
-}

@@ -42,26 +42,6 @@ public class SigiServer
     }
 
 
-    /*******************
-
-    SigiMPServer!!
-
-    *******************/
-
-    /* public static void Main(string[] args){
-        SigiMPServer server = new SigiMPServer();
-        server.StartServer();
-        while(true){
-            Thread.Sleep(1000);
-            server.UdpServerUpdate("test");
-            string test = server.GetPlayerPosition() + server.GetPlayerRotation();
-            Console.WriteLine(test);
-        }
-    }  */
-
-    // public functions!
-
-    // returns the first message in the message queue and removes it.
     public string GetMessage()
     {
         if (MessageQueue != null)
@@ -116,13 +96,11 @@ public class SigiServer
         // handle UDP messages
         _ = UdpMessageHandler();
 
-        // handle incoming tcp connections. 
         while (true)
         {
             TcpClient client = await TcpServer.AcceptTcpClientAsync();
             Console.WriteLine("client connected!");
 
-            // add client to both the tcp and udp list
             EstablishConnection(client);
         }
     }
@@ -146,6 +124,7 @@ public class SigiServer
             }
         }
     }
+
     public void UdpServerUpdate(string msg)
     {
         if (UdpServer != null)
