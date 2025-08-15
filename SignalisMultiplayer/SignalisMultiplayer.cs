@@ -1,9 +1,9 @@
 ﻿using MelonLoader;
+using Rotorz.Tile;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -26,19 +26,17 @@ namespace SigiMultiplayer
         public List<string> BooleanQueue = new List<string>();
         public List<string> BooleanStorage = new List<string>();
         public Cheats Cheats;
+        public string scenename; //used to track active scene
+        public bool inCutscene = false; //used for Raina Checks
 
         //Boolean Variables
         public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall", "Personell" }; //we do not need rooms without boolean values
         public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
+        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers" };
         public List<bool> BooleanList = Enumerable.Repeat(false, 60).ToList();
         public Dictionary<int, GameObject> ActiveEnemyList = new Dictionary<int, GameObject>() { }; //used by boolean handler to store active enemies 
         public Dictionary<int, GameObject> ManagedEnemies = new Dictionary<int, GameObject> { }; //used by Enemy Handler
         public Dictionary<int, string> TemporaryEnemyData = new Dictionary<int, string> { };
-        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers" };
-        public List<string> EnemyData = new List<string>(); //used for storing enemy data
-        public List<bool> EnemyBooleans = Enumerable.Repeat(false, 100).ToList(); //used for enemy states
-        public List<int> EnemyHP = Enumerable.Repeat(0, 100).ToList(); //used for Enemy HP
-        public bool inCutscene = false; //used for Raina Checks
 
         //Readable Server Variables
         public bool host;
@@ -46,27 +44,25 @@ namespace SigiMultiplayer
         public string url;
         public SigiClient client;
         public SigiServer server;
-        public string scenename;
-
     }
     public class SignalisMultiplayer : MelonMod
     {
         static public Storage storage;
         public override async void OnUpdate()
         {
-            if (storage == null)
+            if (storage == null) // This is the logic that runs to ensure that the storage system gets set up, without storage nothing works.
             {
                 storage = StorageSetUp();
             }
-            if (Input.GetKeyDown(KeyCode.M) && Input.GetKey(KeyCode.P) && (!storage.active) && (!storage.failsafe))
+            if (Input.GetKeyDown(KeyCode.M) && Input.GetKey(KeyCode.P) && (!storage.active) && (!storage.failsafe)) // Mod Activation
             {
-                storage.scenename = SceneManager.GetActiveScene().name;
+                storage.scenename = SceneManager.GetActiveScene().name; //set active scene
                 MelonLogger.Msg("Attempting to Load Mod");
-                storage.EllieState = EllieSetUp();
-                if (!storage.EllieState)
+                storage.EllieState = EllieSetUp(); // Load Ellie (Notorious for being the most bug ridden section of the code.)
+                if (!storage.EllieState) //if storage is saying Ellie is inactive then fix that.
                 {
                     storage.EllieState = EllieSetUp();
-                    storage.active = EllieSetUp();
+                    storage.active = storage.EllieState; //Storage is Active as is EllieState.
                     return;
                 }
                 if (storage.host)
@@ -77,30 +73,39 @@ namespace SigiMultiplayer
                 {
                     storage.client.StartClient(storage.url);
                 }
-                storage.EllieClone = GameObject.Find("Ellie_Default(Clone)").gameObject;
+                storage.EllieClone = GameObject.Find("Ellie_Default(Clone)").gameObject; //Storage now assigns the clone to be the newly created Ellie.
                 storage.active = true;
+                MelonLogger.Msg("Mod Successfully Loaded");
             }
-            if (!storage.EllieState)
+            if (!storage.EllieState) //if ellie inactive fix that.
             {
                 if (GameObject.Find("__Prerequisites__") != null)
                 {
-                    storage.EllieState = EllieSetUp(false);
+                    storage.EllieState = EllieSetUp();
                     storage.timer -= storage.delay;
+                    MelonLogger.Msg("Ellie Restored ", storage.EllieState);
+                    storage.active = storage.EllieState;
                 }
             }
-            if (storage.EllieClone == null && storage.active)
+            if (!SceneCheck(storage)) { return; }; //Check Active Scene, see if it has changed.
+            if (storage.EllieClone == null && storage.active) //Ellie Clone is missing, Fix That
             {
                 storage.EllieState = EllieSetUp();
                 storage.timer -= storage.delay;
+                MelonLogger.Msg("Ellie Restored at 93", storage.EllieState);
             }
-            SceneCheck(storage);
-            if (storage.active && storage.EllieState)
+            if (storage.active && storage.EllieState) //Normal Runtime.
             {
-                storage.inCutscene = RainaCheck(storage);
+                storage.inCutscene = RainaCheck(storage); //Assign Raina Check
+                if (storage.inCutscene)
+                {
+                    return;
+                }
                 if (storage.EllieClone == null)
                 {
                     storage.EllieState = EllieSetUp();
                     storage.timer -= storage.delay;
+                    return; //Return to allow for Retoggle.
                 }
                 storage.timer += 1;
                 if (storage.host && storage.timer > storage.delay)
@@ -147,15 +152,22 @@ namespace SigiMultiplayer
             {
                 storage.client = new SigiClient();
             }
+
             return storage;
         }
         public static bool EllieSetUp(bool log = true)
         {
-
-            if (GameObject.Find("__Prerequisites__").gameObject == null)
+            try
             {
-                MelonLogger.Msg("Ellie is Not Established Yet");
-                return false;
+                if (GameObject.Find("__Prerequisites__").gameObject == null)
+                {
+                    MelonLogger.Msg("Ellie is Not Established Yet");
+                    return false;
+                }
+            }
+            catch
+            {
+                MelonLogger.Msg("Preq not Established");
             }
             try
             {
@@ -198,6 +210,8 @@ namespace SigiMultiplayer
                 MelonLogger.Msg("Failure to Collect Cheat Device due to " + e.StackTrace);
             }
             MelonLogger.Msg("Ellie Established");
+            storage.active = true;
+            storage.EllieState = true;
             return true;
         }
 
@@ -343,22 +357,38 @@ namespace SigiMultiplayer
             }
         }
 
-        public static void SceneCheck(Storage storage)
+
+        //Safety Checks
+        public static bool SceneCheck(Storage storage)
         {
-            if (storage.active && storage.EllieState)
+            try
             {
-                if (SceneManager.GetActiveScene().name != storage.scenename)
+                if (storage.active && storage.EllieState)
                 {
-                    try {storage.EllieState = EllieSetUp(); } catch(Exception e) { MelonLogger.Log("Failure on Resetting Up Ellie"); };
-                    if (!storage.EllieState)
+                    if (SceneManager.GetActiveScene().name != storage.scenename)
                     {
-                        storage.active = false;
-                        storage.EllieState = false;
+                        storage.EllieState = EllieSetUp();
+                        storage.scenename = SceneManager.GetActiveScene().name;
+                        storage.BooleanQueue.Clear();
                     }
-                    storage.scenename = SceneManager.GetActiveScene().name;
                 }
+                return true;
+            }
+            catch
+            {
+                MelonLogger.Msg("Failure on Scene Check Code on 373");
+                return false;
             }
         }
+        public static bool RainaCheck(Storage storage)
+        {
+            if (PlayerState.cutscene)
+            {
+                return true;
+            }
+            return false;
+        }
+
         //Read
         public static void AddMessages()
         {
@@ -455,9 +485,6 @@ namespace SigiMultiplayer
                             }
                         }
                         catch {  /*unused debugging due to it working*/   }
-                    }
-                    if (!storage.BooleanList[5])
-                    {
                         try
                         {
                             GameObject Chunk = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject;
@@ -633,8 +660,7 @@ namespace SigiMultiplayer
                     break;
             }
         }
-        public static void DET_Detention(int RoomName, List<string> InternalList)
-        {
+        public static void DET_Detention(int RoomName, List<string> InternalList) {
             switch (RoomName)
             {
                 case 0:
@@ -747,7 +773,7 @@ namespace SigiMultiplayer
                 }
                 Vector3 l = storage.l;
                 float difference = e.z - l.z; //if l > - if e > +
-                if (Math.Abs(difference) < 1)
+                if (Math.Abs(difference) < 10)
                 {
                     //if e.z - l.z or new - old < 10 that means slight variation so set e(new) to l(old)
                     e.z = l.z;
@@ -905,7 +931,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[0])
                         {
                             GameObject Chunk = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -921,7 +947,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[1])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("Pen_CockpitEvent3D").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -940,7 +966,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[2])
                         {
                             GameObject Ducttape = GameObject.Find("Events").gameObject.transform.Find("PEN_PC").gameObject;
-                            if (Ducttape == null)
+                            if (Ducttape == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -961,7 +987,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[4])
                         {
                             GameObject Chunk = GameObject.Find("Cryogenics").gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -976,7 +1002,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[5])
                         {
                             GameObject Chunk = GameObject.Find("Surface Access").gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -992,7 +1018,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[6])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_GuardOffice").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1030,7 +1056,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[8])
                         {
                             GameObject Chunk = GameObject.Find(storage.LOVReEducationRooms[4]).gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1055,7 +1081,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[10])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_ClassSafe").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1069,7 +1095,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[11])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_GuardOffice").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1090,7 +1116,7 @@ namespace SigiMultiplayer
                         if (!storage.BooleanList[12])
                         {
                             GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_ClassSafe").gameObject;
-                            if (Chunk == null)
+                            if (Chunk == null || RainaCheck(storage))
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
@@ -1101,13 +1127,11 @@ namespace SigiMultiplayer
                             return true;
                         }
                         return false;
-                    default:
-                        return true;
                     case 14:
                         //Office - East Key
                         if (!storage.BooleanList[13])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[1]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[2]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1123,7 +1147,7 @@ namespace SigiMultiplayer
                         //Pantry - Mensa Key
                         if (!storage.BooleanList[14])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[2]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[3]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1139,7 +1163,7 @@ namespace SigiMultiplayer
                         //Rations Office - "Shower" Key (West Key)
                         if (!storage.BooleanList[15])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[3]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[4]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1158,7 +1182,7 @@ namespace SigiMultiplayer
                         */
                         if (!storage.BooleanList[16])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[4]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[5]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1173,7 +1197,7 @@ namespace SigiMultiplayer
                     case 18:
                         if (!storage.BooleanList[17])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[5]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[6]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1185,6 +1209,8 @@ namespace SigiMultiplayer
                             return true;
                         }
                         return false;
+                    default:
+                        return true;
                 }
             }
             catch (Exception e)
@@ -1201,7 +1227,7 @@ namespace SigiMultiplayer
         }
 
 
-        //Planned for 0.10.0 
+        //Planned for 0.11.0 
         public static void EnemyReaderLogic()
         {
             //When an enemy is in a room, the boolean checker will add the value of that rooms enemy tag 
@@ -1279,14 +1305,6 @@ namespace SigiMultiplayer
             ApplyVector(storage.ManagedEnemies[outtag], data[1]);
             ApplyQuaternion(storage.ManagedEnemies[outtag], data[2]);
             SBoolApply(data[3]);
-        }
-        public static bool RainaCheck(Storage storage)
-        {
-            if (PlayerState.cutscene)
-            {
-                return false;
-            }
-            return true;
         }
     }
 }
