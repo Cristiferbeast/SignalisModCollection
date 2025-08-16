@@ -33,6 +33,7 @@ namespace SigiMultiplayer
         public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall", "Personell" }; //we do not need rooms without boolean values
         public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
         public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers" };
+        public List<string> DETEvents = new List<string>() { "DET_Elevator", "ROT_RadioStation" };
         public List<bool> BooleanList = Enumerable.Repeat(false, 60).ToList();
         public Dictionary<int, GameObject> ActiveEnemyList = new Dictionary<int, GameObject>() { }; //used by boolean handler to store active enemies 
         public Dictionary<int, GameObject> ManagedEnemies = new Dictionary<int, GameObject> { }; //used by Enemy Handler
@@ -44,6 +45,7 @@ namespace SigiMultiplayer
         public string url;
         public SigiClient client;
         public SigiServer server;
+        public bool neardeath;
     }
     public class SignalisMultiplayer : MelonMod
     {
@@ -421,33 +423,10 @@ namespace SigiMultiplayer
                 }
             }
         }
-        /*public static bool IsBoolSafe(int input)
-        {
-            return true;
-            string name = SceneManager.GetActiveScene().name;
-            switch (name)
-            {
-                case "PEN_Wreck":
-                    if(input <= 6)
-                    {
-                        return false;
-                    }
-                    return true;
-                case "PEN_Hole":
-                    return false;
-                case "LOV_Reeducation":
-                    if (input > 6)
-                    {
-                        return false;
-                    }
-                    return true;
-                default:
-                    return false;
-            }
-        }*/
         public static List<string> BooleanReader()
         {
             List<string> InternalList = new List<string>();
+            DeathHandler(InternalList, storage.neardeath, storage.BooleanList[20]);
             string name = SceneManager.GetActiveScene().name;
             switch (name)
             {
@@ -629,6 +608,14 @@ namespace SigiMultiplayer
                     }
                     break;
                 case 5:
+                    if (!storage.BooleanList[20])
+                    {
+                        GameObject Enemy = GameObject.Find("WestCorridor").gameObject.transform.Find("EnemyManager").gameObject.transform.Find("Enemy 1 EULR");
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            
+                        }
+                    }
                     break;
                 case 6:
                     if (!storage.BooleanList[10])
@@ -740,12 +727,68 @@ namespace SigiMultiplayer
                     }
                     catch { }
                     break;
+                case 6:
+                    try
+                    {
+                        if (!storage.BooleanList[18])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("DET_Elevator").gameObject;
+                            if (Chunk.transform.Find("ServiceKeyPickup") == null)
+                            {
+                                storage.BooleanList[18] = true;
+                                InternalList.Add("19,1");
+                            }
+                        }
+                    }
+                    catch { }
+                    break;
+                case 7:
+                    try
+                    {
+                        if (!storage.BooleanList[19])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").gameObject;
+                            if(Event.transform.Find("RadioPickup") == null)
+                            {
+                                storage.BooleanList[19] = true;
+                                InternalList.Add("20.1");
+                            }
+                        }
+                    }
+                    catch { }
+                    break;
                 default:
                     break;
             }
         }
         public static int RoomChecker(List<string> secondarylist)
         {
+            foreach (string s in secondarylist)
+            {
+                if (GameObject.Find(s) != null)
+                {
+                    //nested this just incase it bugs out as it may since we are testing for null
+                    if (GameObject.Find(s).transform.Find("Chunk").gameObject.active == true)
+                    {
+                        //we need to export out s here, this finds s index
+                        return secondarylist.IndexOf(s); //this isnt flawless, and may interfere with other things in export requiring reformatting 
+                    }
+                }
+            }
+            return 0;
+        }
+        public static int RoomChecker(List<string> secondarylist, List<string> eventlist)
+        {
+            if(GameObject.Find("Events") != null)
+            {
+                foreach (string e in eventlist)
+                {
+                    if(GameObject.Find("Events)").transform.Find(e).gameObject.active == true)
+                    {
+                        return (eventlist.IndexOf(e) + 1 + secondarylist.Count);
+                    }
+                }
+            }
             foreach (string s in secondarylist)
             {
                 if (GameObject.Find(s) != null)
@@ -773,7 +816,7 @@ namespace SigiMultiplayer
                 }
                 Vector3 l = storage.l;
                 float difference = e.z - l.z; //if l > - if e > +
-                if (Math.Abs(difference) < 10)
+                if (Math.Abs(difference) < 1) // experiment lowering value
                 {
                     //if e.z - l.z or new - old < 10 that means slight variation so set e(new) to l(old)
                     e.z = l.z;
@@ -1209,6 +1252,38 @@ namespace SigiMultiplayer
                             return true;
                         }
                         return false;
+                    case 19:
+                        if (!storage.BooleanList[18])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_Elevator").gameObject;
+                            if (Event == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Event.transform.Find("ServiceKeyPickup").gameObject.transform.GetComponent<ItemPickup>().pickUp();
+                            Event.transform.Find("ServiceKeyPickup").gameObject.SetActive(false);
+                            storage.BooleanList[18] = boolean;
+                            return true;
+                        }
+                        return false;
+                    case 20: 
+                        if (!storage.BooleanList[19])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").gameObject;
+                            if(Event == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Event.transform.Find("RadioPickup").gameObject.transform.GetComponent<ItemPickup>().pickUp();
+                            Event.transform.Find("RadioPickup").gameObject.SetActive(false);
+                            storage.BooleanList[19] = boolean;
+                            return true;
+                        }
+                        return false;
+                    case 21:
+                        storage.BooleanList[20] = boolean;
                     default:
                         return true;
                 }
@@ -1225,7 +1300,26 @@ namespace SigiMultiplayer
         public override void OnApplicationQuit()
         {
         }
-
+        
+        //Death Handler
+        public static void DeathHandler(List<string> InternalList, bool neardeath, bool allydeath)
+        {
+            int hp = PlayerState.hp;
+            if (hp <= 20)
+            {
+                if (allydeath)
+                {
+                    PlayerState.HurtElster(100, new Vector2(0, 0));
+                    return;
+                }
+                InternalList.Add("21,1")
+                Cheats.buddha(true);
+            }
+            else
+            {
+                Cheats.buddha(false);
+            }
+        }
 
         //Planned for 0.11.0 
         public static void EnemyReaderLogic()
