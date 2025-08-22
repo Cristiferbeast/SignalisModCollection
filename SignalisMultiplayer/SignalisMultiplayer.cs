@@ -32,12 +32,15 @@ namespace SigiMultiplayer
         //Boolean Variables
         public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall", "Personell" }; //we do not need rooms without boolean values
         public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
-        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers" };
-        public List<string> DETEvents = new List<string>() { "DET_Elevator", "ROT_RadioStation" };
+        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers", "EvidenceStorage", "MensaCorridor", "Kitchen", "Isolation", "SouthWestCorridor", "CellBlockCorridor", "Lockers", "Mensa", "North West Corridor" };
+        public List<string> DETEvents = new List<string>() { "DET_Elevator", "ROT_RadioStation", "DET_DoorServiceHatch", "DET_TreeSafe" };
         public List<bool> BooleanList = Enumerable.Repeat(false, 60).ToList();
-        public Dictionary<int, GameObject> ActiveEnemyList = new Dictionary<int, GameObject>() { }; //used by boolean handler to store active enemies 
+        
+        //Enemy Variables
         public Dictionary<int, GameObject> ManagedEnemies = new Dictionary<int, GameObject> { }; //used by Enemy Handler
-        public Dictionary<int, string> TemporaryEnemyData = new Dictionary<int, string> { };
+        public Dictionary<int, int> EnemyHP = new Dictionary<int, int>();
+        public Dictionary<int, Vector3> EnemyLocation = new Dictionary<int, Vector3>();
+        public Dictionary<int, Quaternion> EnemyRotation = new Dictionary<int, Quaternion>();
 
         //Readable Server Variables
         public bool host;
@@ -46,6 +49,7 @@ namespace SigiMultiplayer
         public SigiClient client;
         public SigiServer server;
         public bool neardeath;
+        public bool dead;
     }
     public class SignalisMultiplayer : MelonMod
     {
@@ -56,7 +60,7 @@ namespace SigiMultiplayer
             {
                 storage = StorageSetUp();
             }
-            if (Input.GetKeyDown(KeyCode.M) && Input.GetKey(KeyCode.P) && (!storage.active) && (!storage.failsafe)) // Mod Activation
+            if (Input.GetKeyDown(KeyCode.M) && Input.GetKeyDown(KeyCode.P) && (!storage.active) && (!storage.failsafe)) // Mod Activation
             {
                 storage.scenename = SceneManager.GetActiveScene().name; //set active scene
                 MelonLogger.Msg("Attempting to Load Mod");
@@ -177,6 +181,7 @@ namespace SigiMultiplayer
                 GameObject CharOrigin = Prerequisties.transform.Find("Character Origin").gameObject;
                 GameObject root = CharOrigin.transform.Find("Character Root").gameObject;
                 storage.EllieMain = root.transform.Find("Ellie_Default").gameObject;
+                storage.dead = false;
             }
             catch
             {
@@ -187,6 +192,8 @@ namespace SigiMultiplayer
             {
                 storage.EllieClone = UnityEngine.Object.Instantiate(storage.EllieMain);
                 storage.EllieClone.GetComponent<Anchor>().enabled = false;
+                storage.EllieClone.GetComponent<PlayerAim>().enabled = false;
+                storage.EllieClone.transform.Find("HurtIKTarget").gameObject.SetActive(false);
             }
             catch
             {
@@ -220,56 +227,63 @@ namespace SigiMultiplayer
         //Key Runtime 
         public static void MessageCentralHost()
         {
-            var itemsToRemove = new List<string>();
-            if (storage.server.GetPlayerCount() == 0)
+            try
             {
-                return;
+                var itemsToRemove = new List<string>();
+                if (storage.server.GetPlayerCount() == 0)
+                {
+                    return;
+                }
+                else
+                {
+                    List<string> Movement = storage.server.GetPlayerMovement();
+                    MessageParse(Movement[0]);
+                    MessageParse(Movement[1]);
+                    storage.MessageCollection.Clear();
+                    SignalisMultiplayer.AddMessages();
+                    if (storage.MessageCollection.Count > 0)
+                    {
+                        string send = "";
+                        foreach (string responseMessage in storage.MessageCollection)
+                        {
+                            send += $"~{responseMessage}";
+                        }
+                        if (send != "")
+                        {
+                            storage.server.UdpServerUpdate(send);
+                        }
+                    }
+                    foreach (string s in storage.server.BList)
+                    {
+                        MelonLogger.Msg(s);
+                        if (s == null || s == "")
+                        {
+                            itemsToRemove.Add(s);
+                        }
+                        else
+                        {
+                            int response = SBoolApply(s);
+                            if (response == 1)
+                            {
+                                MelonLogger.Msg(s, " returned as applied");
+                                itemsToRemove.Add(s);
+                                MelonLogger.Msg(s, " added to list to remove");
+                            }
+                            if (response == 3)
+                            {
+                                itemsToRemove.Add(s);
+                            }
+                        }
+                    }
+                    foreach (string s in itemsToRemove)
+                    {
+                        storage.server.BList.Remove(s);
+                    }
+                }
             }
-            else
+            catch (Exception e)
             {
-                List<string> Movement = storage.server.GetPlayerMovement();
-                MessageParse(Movement[0]);
-                MessageParse(Movement[1]);
-                storage.MessageCollection.Clear();
-                SignalisMultiplayer.AddMessages();
-                if (storage.MessageCollection.Count > 0)
-                {
-                    string send = "";
-                    foreach (string responseMessage in storage.MessageCollection)
-                    {
-                        send += $"~{responseMessage}";
-                    }
-                    if (send != "")
-                    {
-                        storage.server.UdpServerUpdate(send);
-                    }
-                }
-                foreach (string s in storage.server.BList)
-                {
-                    MelonLogger.Msg(s);
-                    if (s == null || s == "")
-                    {
-                        itemsToRemove.Add(s);
-                    }
-                    else
-                    {
-                        int response = SBoolApply(s);
-                        if (response == 1)
-                        {
-                            MelonLogger.Msg(s, " returned as applied");
-                            itemsToRemove.Add(s);
-                            MelonLogger.Msg(s, " added to list to remove");
-                        }
-                        if (response == 3)
-                        {
-                            itemsToRemove.Add(s);
-                        }
-                    }
-                }
-                foreach (string s in itemsToRemove)
-                {
-                    storage.server.BList.Remove(s);
-                }
+                MelonLogger.Msg("Error on 284; " + e.Message + e.StackTrace);
             }
         }
         public static void MessageCentralClient()
@@ -346,9 +360,9 @@ namespace SigiMultiplayer
             {
                 SBoolApply(message); //this may no longer be used due to the new storage method, however it is being left in case we decide to switch off the ductape storage
             }
-            else if (message.StartsWith("E:"))
+            else if (message.StartsWith("ED:"))
             {
-                EnemyMessageReaderPrime(message);
+                DealDamage(message);
             }
             else if (message == "")
             {
@@ -358,7 +372,6 @@ namespace SigiMultiplayer
                 MelonLoader.MelonLogger.Msg("Server Recieved Unhandled Logic " + message);
             }
         }
-
 
         //Safety Checks
         public static bool SceneCheck(Storage storage)
@@ -394,6 +407,7 @@ namespace SigiMultiplayer
         //Read
         public static void AddMessages()
         {
+            PeerSideEnemyHandler(storage);
             List<Vector3> vvalue = CheckVector();
             if (vvalue != null)
             {
@@ -426,7 +440,7 @@ namespace SigiMultiplayer
         public static List<string> BooleanReader()
         {
             List<string> InternalList = new List<string>();
-            DeathHandler(InternalList, storage.neardeath, storage.BooleanList[20]);
+            DeathHandler(InternalList, storage);
             string name = SceneManager.GetActiveScene().name;
             switch (name)
             {
@@ -440,6 +454,10 @@ namespace SigiMultiplayer
                 case "LOV_Reeducation":
                     int roomname2 = RoomChecker(storage.LOVReEducationRooms);
                     LOV_ReEducation(roomname2, InternalList);
+                    break;
+                case "DET_Detention":
+                    int roomname3 = RoomChecker(storage.DETDetentionRooms);
+                    DET_Detention(roomname3, InternalList);
                     break;
                 default:
                     break;
@@ -608,14 +626,18 @@ namespace SigiMultiplayer
                     }
                     break;
                 case 5:
-                    if (!storage.BooleanList[20])
+                    try
                     {
-                        GameObject Enemy = GameObject.Find("WestCorridor").gameObject.transform.Find("EnemyManager").gameObject.transform.Find("Enemy 1 EULR");
-                        if (Enemy != null || Enemy.active == true)
+                        if (!storage.ManagedEnemies.ContainsKey(1))
                         {
-                            
+                            GameObject Enemy = GameObject.Find("WestCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 EULR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 1);
+                            }
                         }
                     }
+                    catch(Exception e) { MelonLogger.Msg("Failure on Room Case 5, Bool 20, Enemy Handler " + e.Message + e.StackTrace ); }
                     break;
                 case 6:
                     if (!storage.BooleanList[10])
@@ -679,6 +701,14 @@ namespace SigiMultiplayer
                                 InternalList.Add("15,1");
                             }
                         }
+                        if (!storage.ManagedEnemies.ContainsKey(10))
+                        {
+                            GameObject Enemy = GameObject.Find("Pantry").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("EULR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 10);
+                            }
+                        }
                     }
                     catch { }
                     break;
@@ -702,7 +732,7 @@ namespace SigiMultiplayer
                     {
                         if (!storage.BooleanList[16])
                         {
-                            GameObject Chunk = GameObject.Find("BathroomSouth").gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find("BathroomSouth").gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
                             if (Chunk.transform.Find("ItemPickup_BoneKeyA") == null)
                             {
                                 storage.BooleanList[16] = true;
@@ -717,8 +747,31 @@ namespace SigiMultiplayer
                     {
                         if (!storage.BooleanList[17])
                         {
-                            GameObject Chunk = GameObject.Find("Showers").gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find("Showers").gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
                             if (Chunk.transform.Find("ItemPickup_BoneKeyB") == null)
+                            {
+                                storage.BooleanList[17] = true;
+                                InternalList.Add("18,1");
+                            }
+                        }
+                        if (!storage.ManagedEnemies.ContainsKey(3))
+                        {
+                            GameObject Enemy = GameObject.Find("Showers").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 EULR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 2);
+                            }
+                        }
+                    }
+                    catch { }
+                    break;
+                case 6:
+                    /*try
+                    {
+                        if (!storage.BooleanList[17])
+                        {
+                            GameObject Chunk = GameObject.Find("EvidenceStorage").gameObject.transform.Find("Chunk").gameObject;
+                            if (Chunk.transform.Find("ButterflyBoxEvent") == null)
                             {
                                 storage.BooleanList[17] = true;
                                 InternalList.Add("18,1");
@@ -726,8 +779,156 @@ namespace SigiMultiplayer
                         }
                     }
                     catch { }
+                    break;*/
+                case 7:
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(2))
+                        {
+                            GameObject Enemy = GameObject.Find("MensaCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 Star").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 2);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 7, Bool 2, Enemy Handler " + e.Message + e.StackTrace); }
                     break;
-                case 6:
+                case 8: 
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(4))
+                        {
+                            GameObject Enemy = GameObject.Find("Kitchen").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 EULR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 4);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 8, Bool 3, Enemy Handler " + e.Message + e.StackTrace); }
+                    break;
+                case 9:
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(5))
+                        {
+                            GameObject Enemy = GameObject.Find("Isolation").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 5);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 9, Bool 5, Enemy Handler " + e.Message + e.StackTrace); }
+                    break;
+                case 10:
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(6))
+                        {
+                            GameObject Enemy = GameObject.Find("SouthWestCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("EULR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 6);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 6, Enemy Handler " + e.Message + e.StackTrace); }
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(7))
+                        {
+                            GameObject Enemy = GameObject.Find("SouthWestCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("EULR (1)").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 7);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 7, Enemy Handler " + e.Message + e.StackTrace); }
+                    break;
+                case 11:
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(8))
+                        {
+                            GameObject Enemy = GameObject.Find("CellBlockCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("EULR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 8);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 8, Enemy Handler " + e.Message + e.StackTrace); }
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(9))
+                        {
+                            GameObject Enemy = GameObject.Find("CellBlockCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("EULR (1)").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 9);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 9, Enemy Handler " + e.Message + e.StackTrace); }
+                    break;
+                case 12:
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(11))
+                        {
+                            GameObject Enemy = GameObject.Find("Lockers").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 EULR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 11);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 11, Enemy Handler " + e.Message + e.StackTrace); }
+                    break;
+                case 13:
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(12))
+                        {
+                            GameObject Enemy = GameObject.Find("Mensa").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 12);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 13, Bool 12, Enemy Handler " + e.Message + e.StackTrace); }
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(13))
+                        {
+                            GameObject Enemy = GameObject.Find("Mensa").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 2 STAR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 13);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 13, Bool 13, Enemy Handler " + e.Message + e.StackTrace); }
+                    break;
+                case 14:
+                    try
+                    {
+                        if (!storage.ManagedEnemies.ContainsKey(14))
+                        {
+                            GameObject Enemy = GameObject.Find("North West Corridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
+                            if (Enemy != null || Enemy.active == true)
+                            {
+                                InstantiateEnemy(Enemy, 14);
+                            }
+                        }
+                    }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 14, Bool 14, Enemy Handler " + e.Message + e.StackTrace); }
+                    break;
+                case 15:
                     try
                     {
                         if (!storage.BooleanList[18])
@@ -742,7 +943,7 @@ namespace SigiMultiplayer
                     }
                     catch { }
                     break;
-                case 7:
+                case 16:
                     try
                     {
                         if (!storage.BooleanList[19])
@@ -757,7 +958,181 @@ namespace SigiMultiplayer
                     }
                     catch { }
                     break;
+                case 17:
+                    try
+                    {
+                        if (!storage.BooleanList[19])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_DoorServiceHatch").gameObject;
+                            if (Event.transform.Find("KeyLogic").gameObject.transform.Find("Logic").gameObject.transform.GetComponent<PuzzleStatus>().solved == true)
+                            {
+                                storage.BooleanList[21] = true;
+                                InternalList.Add("22.1");
+                            }
+                        }
+                    }
+                    catch { }
+                    break;
+                case 18:
+                    try
+                    {
+                        if (!storage.BooleanList[19])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_TreeSafe").gameObject;
+                            if (Event.transform.Find("Card") == null)
+                            {
+                                storage.BooleanList[23] = true;
+                                InternalList.Add("24.1");
+                            }
+                        }
+                    }
+                    catch { }
+                    break;
                 default:
+                    break;
+            }
+        }
+        public static void MED_Medical(int RoomName, List<string> InternalList)
+        {
+            switch (RoomName)
+            {
+                case 0:
+                    break;
+                case 1:
+                    if (!storage.ManagedEnemies.ContainsKey(15))
+                    {
+                        GameObject Enemy = GameObject.Find("South Corridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 EULR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 15);
+                        }
+                    }
+                    if (!storage.ManagedEnemies.ContainsKey(16))
+                    {
+                        GameObject Enemy = GameObject.Find("South Corridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 2 EULR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 16);
+                        }
+                    }
+                    break;
+                case 2:
+                    if (!storage.ManagedEnemies.ContainsKey(17))
+                    {
+                        GameObject Enemy = GameObject.Find("East Corridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 17);
+                        }
+                    }
+                    break;
+                case 3:
+                    if (!storage.ManagedEnemies.ContainsKey(18))
+                    {
+                        GameObject Enemy = GameObject.Find("Sleeping Ward").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("ARAR NestTile").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 18);
+                        }
+                    }
+                    if (!storage.ManagedEnemies.ContainsKey(19))
+                    {
+                        GameObject Enemy = GameObject.Find("Sleeping Ward").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("ARAR NestTile (1)").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 19);
+                        }
+                    }
+                    if (!storage.ManagedEnemies.ContainsKey(20))
+                    {
+                        GameObject Enemy = GameObject.Find("Sleeping Ward").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("ARAR NestTile (2)").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 20);
+                        }
+                    }
+                    if (!storage.ManagedEnemies.ContainsKey(21))
+                    {
+                        GameObject Enemy = GameObject.Find("Sleeping Ward").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("ARAR NestTile (3)").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 21);
+                        }
+                    }
+                    break;
+                case 4:
+                    if (!storage.ManagedEnemies.ContainsKey(22))
+                    {
+                        GameObject Enemy = GameObject.Find("West Corridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 22);
+                        }
+                    }
+                    break;
+                case 5:
+                    if (!storage.ManagedEnemies.ContainsKey(23))
+                    {
+                        GameObject Enemy = GameObject.Find("Morgue").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 23);
+                        }
+                    }
+                    if (!storage.ManagedEnemies.ContainsKey(24))
+                    {
+                        GameObject Enemy = GameObject.Find("Morgue").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("ARAR NestTile").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 24);
+                        }
+                    }
+                    if (!storage.ManagedEnemies.ContainsKey(25))
+                    {
+                        GameObject Enemy = GameObject.Find("Morgue").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("ARAR NestTile (1)").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 25);
+                        }
+                    }
+                    break;
+                case 6:
+                    if (!storage.ManagedEnemies.ContainsKey(26))
+                    {
+                        GameObject Enemy = GameObject.Find("HDU 2 (Dentist)").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 EULR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 26);
+                        }
+                    }
+                    if (!storage.ManagedEnemies.ContainsKey(27))
+                    {
+                        GameObject Enemy = GameObject.Find("HDU 2 (Dentist)").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 2 EULR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 27);
+                        }
+                    }
+                    break;
+                case 7:
+                    if (!storage.ManagedEnemies.ContainsKey(28))
+                    {
+                        GameObject Enemy = GameObject.Find("Flooded Corridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 28);
+                        }
+                    }
+                    break;
+                case 8:
+                    if (!storage.ManagedEnemies.ContainsKey(29))
+                    {
+                        GameObject Enemy = GameObject.Find("ICU 1 (TV Room)").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("EULR").gameObject;
+                        if (Enemy != null || Enemy.active == true)
+                        {
+                            InstantiateEnemy(Enemy, 29);
+                        }
+                    }
                     break;
             }
         }
@@ -816,11 +1191,10 @@ namespace SigiMultiplayer
                 }
                 Vector3 l = storage.l;
                 float difference = e.z - l.z; //if l > - if e > +
-                if (Math.Abs(difference) < 1) // experiment lowering value
+                /*if (Math.Abs(difference) < 1) // experiment lowering value
                 {
-                    //if e.z - l.z or new - old < 10 that means slight variation so set e(new) to l(old)
                     e.z = l.z;
-                }
+                }*/
                 if (e.x != l.x || e.y != l.y || e.z != l.z)
                 {
                     VList.Add(e);
@@ -1174,7 +1548,7 @@ namespace SigiMultiplayer
                         //Office - East Key
                         if (!storage.BooleanList[13])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[2]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[1]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1190,7 +1564,7 @@ namespace SigiMultiplayer
                         //Pantry - Mensa Key
                         if (!storage.BooleanList[14])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[3]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[2]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1206,7 +1580,7 @@ namespace SigiMultiplayer
                         //Rations Office - "Shower" Key (West Key)
                         if (!storage.BooleanList[15])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[4]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[3]).gameObject.transform.Find("Chunk").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1225,7 +1599,7 @@ namespace SigiMultiplayer
                         */
                         if (!storage.BooleanList[16])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[5]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find("Showers").gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1240,7 +1614,7 @@ namespace SigiMultiplayer
                     case 18:
                         if (!storage.BooleanList[17])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[6]).gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[5]).gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1283,7 +1657,78 @@ namespace SigiMultiplayer
                         }
                         return false;
                     case 21:
-                        storage.BooleanList[20] = boolean;
+                        //Death Bool
+                        if(storage.BooleanList[20] != boolean)
+                        {
+                            storage.BooleanList[20] = boolean;
+                        }
+                        return true;
+                    case 22:
+                        if (!storage.BooleanList[21])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_DoorServiceHatch").gameObject;
+                            if (Event == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Event.transform.Find("KeyLogic").gameObject.transform.Find("Logic").gameObject.transform.GetComponent<PuzzleStatus>().solved = true;
+                            storage.BooleanList[21] = true;
+                            return true;
+                        }
+                        return false;
+                    case 23:
+                        //Plate of Eternity - Complex Logic Here, Debating if Worth Firing off
+                        if (!storage.BooleanList[22])
+                        {
+                            GameObject Chunk = GameObject.Find("EvidenceStorage").gameObject.transform.Find("Chunk").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.transform.Find("ButterflyBoxEvent");
+                            storage.BooleanList[22] = true;
+                            return true;
+                        }
+                        return false;
+                    case 24:
+                        //Identification Card
+                        if (!storage.BooleanList[23])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_TreeSafe").gameObject;
+                            if (Event == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Event.transform.Find("Card").gameObject.transform.Find("ItemPickup").gameObject.transform.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[23] = true;
+                            return true;
+                        }
+                        return false;
+                    case 25:
+                        //Death Sent
+                        try
+                        {
+                            if (!storage.BooleanList[26])
+                            {
+                                storage.active = true;
+                                storage.failsafe = true;
+                                if (Cheats.buddha)
+                                {
+                                    Cheats.cheat("buddha");
+                                }
+                                PlayerState.HurtElster(100, new Vector2(0, 0));
+                                storage.BooleanList[26] = true;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            MelonLogger.Msg("Error on 26" + e.Message);
+                            return true;
+                        }
+                        return true;
                     default:
                         return true;
                 }
@@ -1302,103 +1747,212 @@ namespace SigiMultiplayer
         }
         
         //Death Handler
-        public static void DeathHandler(List<string> InternalList, bool neardeath, bool allydeath)
+        public static void DeathHandler(List<string> InternalList, Storage storage)
         {
-            int hp = PlayerState.hp;
-            if (hp <= 20)
+            try
             {
-                if (allydeath)
+                int hp = PlayerState.hp;
+                if (hp <= 20)
                 {
-                    PlayerState.HurtElster(100, new Vector2(0, 0));
-                    return;
+                    if (storage.BooleanList[20] && !storage.dead) //Other Player is Also Dead
+                    {
+                        if (Cheats.buddha)
+                        {
+                            Cheats.cheat("buddha");
+                        }
+                        PlayerState.HurtElster(100, new Vector2(0, 0));
+                        InternalList.Add("26,1");
+                        storage.dead = true;
+                        return;
+                    }
+                    if (!storage.neardeath)
+                    {
+                        InternalList.Add("21,1");
+                        storage.neardeath = true;
+                    }
+                    if (!Cheats.buddha)
+                    {
+                        //This works, if Hp <= 20 and Buddha is off it turns it on succesfully
+                        Cheats.cheat("buddha");
+                    }
                 }
-                InternalList.Add("21,1")
-                Cheats.buddha(true);
+                else
+                {
+                    if (storage.neardeath)
+                    {
+                        InternalList.Add("21,0");
+                    }
+                    storage.neardeath = false;
+                }
             }
-            else
+            catch(Exception e)
             {
-                Cheats.buddha(false);
+                MelonLogger.Msg("Error in Death Handler" + e.Message);
             }
         }
 
-        //Planned for 0.11.0 
-        public static void EnemyReaderLogic()
+        //Enemy Handlers
+        public static void PeerSideEnemyHandler(Storage storage)
         {
-            //When an enemy is in a room, the boolean checker will add the value of that rooms enemy tag 
-            if (storage.ActiveEnemyList.Count == 0)
+            //First Handle if Enemies need to be Handled At All
+            List<int> enemiesToRemove = new List<int>();
+            foreach (KeyValuePair<int, GameObject> kvp in storage.ManagedEnemies)
             {
-                return;
+                int tag = kvp.Key;
+                GameObject enemy = kvp.Value;
+                {
+                    //First Check if we Even Need to Handle It
+                    if ((enemy == null) || (!enemy.active)); {
+                        enemiesToRemove.Add(tag); continue; //No Longer Active
+                    }
+                    Hitbox hit = enemy.GetComponent<Hitbox>();
+                    if (hit == null) {
+                        enemiesToRemove.Add(tag); continue; //No Active Hitbox
+                    }
+                    EnemyController controller = enemy.GetComponent<EnemyController>();
+
+                    //Handling Damage; does not need to be returned, actively updated
+                    int health = hit.HP;
+                    if (storage.EnemyHP[tag] > hit.HP)
+                    {
+                        storage.EnemyHP[tag] = health;
+                        string value = $"ED:{tag}={health}";
+                        storage.MessageCollection.Add(value);
+                        //Need to Send Message, Damage was done by this Peer
+                    }
+                    if (storage.EnemyHP[tag] < hit.HP)
+                    {
+                        hit.HP = storage.EnemyHP[tag]; //Enemy Took damage from other peer, the logic for reading this is handled by the ServerSide
+                    }
+                    if (hit.HP <= 0)
+                    {
+                        enemiesToRemove.Add(tag); continue; //Enemy is dead stop tracking it
+                    }
+
+                    //Handle Location
+                    Vector3? tempVector = CheckEnemyVector(enemy, tag);
+                    if(tempVector != null)
+                    {
+                        string value = ($"EV:{tag}={tempVector.ToString()}");
+                        storage.MessageCollection.Add(value);
+                    }
+                    Quaternion? tempQuater = CheckEnemyQuaternion(enemy, tag);
+                    if (tempQuater != null) 
+                    {
+                        string value = ($"EQ:{tag}={tempQuater.ToString()}");
+                        storage.MessageCollection.Add(value);
+                    }
+                    //Handle Targeting
+
+
+                    //Return Results
+
+                }
             }
-            foreach (int enemy in storage.ActiveEnemyList.Keys)
+            foreach (int tag in enemiesToRemove)
             {
-                EnemyDetails(storage.ActiveEnemyList[enemy], enemy);
+                storage.ManagedEnemies.Remove(tag);
             }
         }
-        public static string EnemyDetails(GameObject Enemy, int tag)
+        public static void InstantiateEnemy(GameObject enemy, int tag)
         {
-            if (Enemy == null)
+            storage.ManagedEnemies.Add(tag, enemy);
+            CheckEnemyVector(enemy, tag);
+            CheckEnemyQuaternion(enemy, tag);
+        }
+        public static Vector3? CheckEnemyVector(GameObject enemy, int tag)
+        {
+            try
             {
-                Console.WriteLine("Enemy Returned Null Error");
+                Vector3 e = enemy.transform.position;
+                if (!storage.EnemyLocation.ContainsKey(tag))
+                {
+                    storage.EnemyLocation.Add(tag,e);
+                    return null; //Instantiation Logic for CheckEnemyVector
+                }
+                Vector3 l = storage.EnemyLocation[tag];
+                float difference = e.z - l.z;
+                if (Math.Abs(difference) < 1)
+                {
+                    e.z = l.z;
+                }
+                if (e.x != l.x || e.y != l.y || e.z != l.z)
+                {
+                    storage.EnemyLocation[tag] = e;
+                    return e;
+                }
+                else
+                {
+                    //If there is no change, send nothing, return null so no message is sent
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Msg("Failure on 1461-Check Vector " + ex.Message + ex.StackTrace);
                 return null;
             }
-            string Details = $"E:{tag + 1}>";
-            string FDet = "";
-            if (storage.TemporaryEnemyData[tag] == null)
-            {
-                Details += "V:" + Enemy.transform.position.ToString() + ">";
-                Details += "Q:" + Enemy.transform.rotation.ToString() + ">";
-                Details += "B:" + true + ">"; //replace with dead logic
-                FDet = Details;
-            }
-            else
-            {
-                string[] data = storage.TemporaryEnemyData[tag].Split('>');
-                FDet = Details;
-                if ("V:" + Enemy.transform.position.ToString() != data[1])
-                {
-                    Details += "V:" + Enemy.transform.position.ToString() + ">";
-                }
-                FDet += "V:" + Enemy.transform.position.ToString() + ">";
-                if ("Q:" + Enemy.transform.rotation.ToString() + ">" != data[2])
-                {
-                    Details += "Q:" + Enemy.transform.rotation.ToString() + ">";
-                }
-                FDet += "Q:" + Enemy.transform.rotation.ToString() + ">";
-                if ("B:" + true + ">" != data[3])
-                {
-                    Details += "B:" + true + ">"; //replace with dead logic
-                }
-                FDet += "B:" + true + ">"; //replace with dead logic
-            }
-            storage.TemporaryEnemyData[tag] = FDet;
-            return Details;
         }
-        public static GameObject ApplyEnemy(bool boolean, int tag)
+        public static Quaternion? CheckEnemyQuaternion(GameObject enemy, int tag)
         {
-            GameObject returnvalue;
-            switch (tag)
+            try
             {
-                case 1:
-                    returnvalue = new GameObject();
-                    break;
-                default:
-                    returnvalue = null;
-                    break;
+                Quaternion e = enemy.transform.rotation;
+                if (!storage.EnemyRotation.ContainsKey(tag))
+                {
+                    storage.EnemyRotation.Add(tag,e);
+                    return null;
+                }
+                Quaternion r = storage.EnemyRotation[tag];
+                if (e.x != r.x || e.y != r.y || e.z != r.z)
+                {
+                    storage.EnemyRotation[tag] = e;
+                    return e;
+                }
+                else
+                {
+                    return null;
+                }
             }
-            return returnvalue;
+            catch(Exception e)
+            {
+                MelonLogger.Msg("Failure on 1490-Check Quaternion" + e.Message + e.StackTrace );
+                return null;
+            }
+
         }
-        public static void EnemyMessageReaderPrime(string message)
+        public static void MoveEnemy()
         {
-            //All Enemy Units must have 2 digits of Boolean, First digit is active state, Second digit is primacy. If Active State is true, then opposite has primacy, if it is false then current has primacy
-            string[] data = message.Split('>');
-            int outtag = int.Parse(data[0]);
-            if (storage.ManagedEnemies[outtag] == null)
+
+        }
+        public static void RotateEnemy()
+        {
+
+        }
+        public static void TargetEnemy()
+        {
+
+        }
+        public static void DealDamage(string message)
+        {
+            int colonIndex = message.IndexOf(':');
+            if (colonIndex != -1 && colonIndex < message.Length - 1)
             {
-                storage.ManagedEnemies[outtag] = ApplyEnemy(true, outtag);
+                message = message.Substring(colonIndex + 1);
+                string[] sides = message.Split('=');
+                if (int.TryParse(sides[0], out int tag) && int.TryParse(sides[1], out int value))
+                {
+                    storage.EnemyHP[tag] = value;
+                }
             }
-            ApplyVector(storage.ManagedEnemies[outtag], data[1]);
-            ApplyQuaternion(storage.ManagedEnemies[outtag], data[2]);
-            SBoolApply(data[3]);
+        }
+        public static bool EnemyStatus(GameObject Enemy, int tag, Hitbox hit)
+        {
+            if ((hit.HP == 0) || (!Enemy.active))
+            {
+                return false;
+            }
+            return true;
         }
     }
 }
