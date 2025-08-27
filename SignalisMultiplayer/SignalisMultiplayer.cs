@@ -32,8 +32,7 @@ namespace SigiMultiplayer
         //Boolean Variables
         public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall", "Personell" }; //we do not need rooms without boolean values
         public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
-        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers", "EvidenceStorage", "MensaCorridor", "Kitchen", "Isolation", "SouthWestCorridor", "CellBlockCorridor", "Lockers", "Mensa", "North West Corridor" };
-        public List<string> DETEvents = new List<string>() { "DET_Elevator", "ROT_RadioStation", "DET_DoorServiceHatch", "DET_TreeSafe" };
+        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers", "EvidenceStorage", "MensaCorridor", "Kitchen", "Isolation", "SouthWestCorridor", "CellBlockCorridor", "Lockers", "Mensa", "North West Corridor", "MED_Elevator" };
         public List<bool> BooleanList = Enumerable.Repeat(false, 60).ToList();
         
         //Enemy Variables
@@ -50,6 +49,10 @@ namespace SigiMultiplayer
         public SigiServer server;
         public bool neardeath;
         public bool dead;
+
+        //Cutscene Variables
+        public bool AltControllerState = false;
+        public GameObject AltController;
     }
     public class SignalisMultiplayer : MelonMod
     {
@@ -456,7 +459,7 @@ namespace SigiMultiplayer
                     LOV_ReEducation(roomname2, InternalList);
                     break;
                 case "DET_Detention":
-                    int roomname3 = RoomChecker(storage.DETDetentionRooms);
+                    int roomname3 = RoomChecker(storage.DETDetentionRooms); 
                     DET_Detention(roomname3, InternalList);
                     break;
                 default:
@@ -688,6 +691,28 @@ namespace SigiMultiplayer
                         }
                     }
                     catch { }
+                    try
+                    {
+                        if (!storage.BooleanList[23])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_TreeSafe").gameObject;
+                            if (Event.transform.Find("Card") == null)
+                            {
+                                storage.BooleanList[23] = true;
+                                InternalList.Add("24,1");
+                            }
+                        }
+                        if (!storage.BooleanList[27])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_TreeSafe").gameObject;
+                            if (Event.transform.Find("Door").GetComponent<Keypad3D>().solved)
+                            {
+                                storage.BooleanList[27] = true;
+                                InternalList.Add("27,1");
+                            }
+                        }
+                    }
+                    catch { }
                     break;
                 case 2:
                     try
@@ -766,29 +791,57 @@ namespace SigiMultiplayer
                     catch { }
                     break;
                 case 6:
-                    /*try
+                    try
                     {
-                        if (!storage.BooleanList[17])
+                        if (!storage.BooleanList[22])
                         {
-                            GameObject Chunk = GameObject.Find("EvidenceStorage").gameObject.transform.Find("Chunk").gameObject;
-                            if (Chunk.transform.Find("ButterflyBoxEvent") == null)
+                            GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("DET_MysteryBox").gameObject.transform.Find("mystery_box_scene-2").gameObject.transform.Find("MysteryBox").gameObject.transform.Find("Sign").gameObject;
+                            if (Chunk.transform.Find("SignPickup") == null)
                             {
-                                storage.BooleanList[17] = true;
-                                InternalList.Add("18,1");
+                                storage.BooleanList[22] = true;
+                                InternalList.Add("23,1");
+                            }
+                        }
+                        if (GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").gameObject.active)
+                        {
+                            if (!storage.AltControllerState)
+                            {
+                                storage.AltControllerState = true;
+                                storage.AltController = GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").gameObject.transform.Find("CameraOrigin").Find("CameraPivot").Find("EventCamera").gameObject;
+                                storage.AltController.GetComponent<Camera>().cullingMask = -1; //now Ellie Can be Seen;
+                                storage.EllieClone.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
+                                GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").Find("Mountain").Find("Base").Find("MainBuilding").Find("RadioBuildingDoor_1").gameObject.active = false; //Easter Egg 
+                            }
+                            if (!storage.BooleanList[19])
+                            {
+                                GameObject Event = GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").gameObject;
+                                if (!Event.transform.Find("RadioPickup").transform.Find("ModuleBox").transform.Find("Module").gameObject.active)
+                                {
+                                    storage.BooleanList[19] = true;
+                                    InternalList.Add("20,1");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (storage.AltControllerState)
+                            {
+                                storage.AltControllerState = false;
+                                storage.EllieClone.transform.localScale = new Vector3(1, 1, 1); //Temporary Workaround for Ellie Scaling Issues
                             }
                         }
                     }
                     catch { }
-                    break;*/
+                    break;
                 case 7:
                     try
                     {
                         if (!storage.ManagedEnemies.ContainsKey(2))
                         {
-                            GameObject Enemy = GameObject.Find("MensaCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 Star").gameObject;
+                            GameObject Enemy = GameObject.Find("MensaCorridor").gameObject.transform.Find("Enemy Manager").gameObject.transform.Find("Enemy 1 STAR").gameObject;
                             if (Enemy != null || Enemy.active == true)
                             {
-                                InstantiateEnemy(Enemy, 2);
+                                InstantiateEnemy(Enemy, 3);
                             }
                         }
                     }
@@ -873,6 +926,19 @@ namespace SigiMultiplayer
                         }
                     }
                     catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 9, Enemy Handler " + e.Message + e.StackTrace); }
+                    try
+                    {
+                        if (!storage.BooleanList[21])
+                        {
+                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_DoorServiceHatch").gameObject;
+                            if (Event.transform.Find("KeyLogic").gameObject.transform.Find("Logic").gameObject.transform.GetComponent<PuzzleStatus>().solved == true)
+                            {
+                                storage.BooleanList[21] = true;
+                                InternalList.Add("22,1");
+                            }
+                        }
+                    }
+                    catch { }
                     break;
                 case 12:
                     try
@@ -938,51 +1004,6 @@ namespace SigiMultiplayer
                             {
                                 storage.BooleanList[18] = true;
                                 InternalList.Add("19,1");
-                            }
-                        }
-                    }
-                    catch { }
-                    break;
-                case 16:
-                    try
-                    {
-                        if (!storage.BooleanList[19])
-                        {
-                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").gameObject;
-                            if(Event.transform.Find("RadioPickup") == null)
-                            {
-                                storage.BooleanList[19] = true;
-                                InternalList.Add("20.1");
-                            }
-                        }
-                    }
-                    catch { }
-                    break;
-                case 17:
-                    try
-                    {
-                        if (!storage.BooleanList[19])
-                        {
-                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_DoorServiceHatch").gameObject;
-                            if (Event.transform.Find("KeyLogic").gameObject.transform.Find("Logic").gameObject.transform.GetComponent<PuzzleStatus>().solved == true)
-                            {
-                                storage.BooleanList[21] = true;
-                                InternalList.Add("22.1");
-                            }
-                        }
-                    }
-                    catch { }
-                    break;
-                case 18:
-                    try
-                    {
-                        if (!storage.BooleanList[19])
-                        {
-                            GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_TreeSafe").gameObject;
-                            if (Event.transform.Find("Card") == null)
-                            {
-                                storage.BooleanList[23] = true;
-                                InternalList.Add("24.1");
                             }
                         }
                     }
@@ -1152,49 +1173,31 @@ namespace SigiMultiplayer
             }
             return 0;
         }
-        public static int RoomChecker(List<string> secondarylist, List<string> eventlist)
-        {
-            if(GameObject.Find("Events") != null)
-            {
-                foreach (string e in eventlist)
-                {
-                    if(GameObject.Find("Events)").transform.Find(e).gameObject.active == true)
-                    {
-                        return (eventlist.IndexOf(e) + 1 + secondarylist.Count);
-                    }
-                }
-            }
-            foreach (string s in secondarylist)
-            {
-                if (GameObject.Find(s) != null)
-                {
-                    //nested this just incase it bugs out as it may since we are testing for null
-                    if (GameObject.Find(s).transform.Find("Chunk").gameObject.active == true)
-                    {
-                        //we need to export out s here, this finds s index
-                        return secondarylist.IndexOf(s); //this isnt flawless, and may interfere with other things in export requiring reformatting 
-                    }
-                }
-            }
-            return 0;
-        }
         public static List<Vector3> CheckVector()
         {
+            //this needs to be rewritten one of these days :C
             try
             {
                 List<Vector3> VList = new List<Vector3>() { };
+                Vector3 l = storage.l;
+                if (storage.AltControllerState)
+                {
+                    Vector3 e2 = storage.AltController.transform.position;
+                    if (e2.x != l.x || e2.y != l.y || e2.z != l.z)
+                    {
+                        VList.Add(e2);
+                        storage.l = e2;
+                        return VList;
+                    }
+                    return null;
+                }
                 Vector3 e = storage.EllieMain.transform.position;
                 if (storage.l == null)
                 {
                     storage.l = e;
                     return null;
                 }
-                Vector3 l = storage.l;
-                float difference = e.z - l.z; //if l > - if e > +
-                /*if (Math.Abs(difference) < 1) // experiment lowering value
-                {
-                    e.z = l.z;
-                }*/
+                float difference = e.z - l.z; 
                 if (e.x != l.x || e.y != l.y || e.z != l.z)
                 {
                     VList.Add(e);
@@ -1203,7 +1206,6 @@ namespace SigiMultiplayer
                 }
                 else
                 {
-                    //If there is no change, send nothing, return null so no message is sent
                     return null;
                 }
             }
@@ -1218,14 +1220,28 @@ namespace SigiMultiplayer
             try
             {
                 List<Quaternion> QList = new List<Quaternion>() { };
+                Quaternion r = storage.r;
+                if (storage.AltControllerState)
+                {
+                    Quaternion e2 = storage.AltController.transform.rotation;
+                    if (e2.x != r.x || e2.y != r.y || e2.z != r.z || e2.w != r.w) // there was no tracking on w prior perhaps this is the origin of some bugs?
+                {
+                    QList.Add(e2);
+                    storage.r = e2;
+                    return QList;
+                }
+                else
+                {
+                    return null;
+                }
+                }
                 Quaternion e = storage.EllieMain.transform.rotation;
                 if (storage.r == null)
                 {
                     storage.r = e;
                     return null;
                 }
-                Quaternion r = storage.r;
-                if (e.x != r.x || e.y != r.y || e.z != r.z)
+                if (e.x != r.x || e.y != r.y || e.z != r.z || e.w != r.w) // there was no tracking on w prior perhaps this is the origin of some bugs?
                 {
                     QList.Add(e);
                     storage.r = e;
@@ -1599,7 +1615,7 @@ namespace SigiMultiplayer
                         */
                         if (!storage.BooleanList[16])
                         {
-                            GameObject Chunk = GameObject.Find("Showers").gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
+                            GameObject Chunk = GameObject.Find("BathroomSouth").gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1614,7 +1630,7 @@ namespace SigiMultiplayer
                     case 18:
                         if (!storage.BooleanList[17])
                         {
-                            GameObject Chunk = GameObject.Find(storage.DETDetentionRooms[5]).gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
+                            GameObject Chunk = GameObject.Find("Showers").gameObject.transform.Find("Chunk").gameObject.transform.Find("Objects").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
@@ -1681,13 +1697,15 @@ namespace SigiMultiplayer
                         //Plate of Eternity - Complex Logic Here, Debating if Worth Firing off
                         if (!storage.BooleanList[22])
                         {
-                            GameObject Chunk = GameObject.Find("EvidenceStorage").gameObject.transform.Find("Chunk").gameObject;
+                            GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("DET_MysteryBox").gameObject.transform.Find("mystery_box_scene-2").gameObject;
                             if (Chunk == null)
                             {
                                 storage.BooleanQueue.Add(message);
                                 return false;
                             }
-                            Chunk.transform.Find("ButterflyBoxEvent");
+                            GameObject.Find("Events").gameObject.transform.Find("DET_MysteryBox").gameObject.GetComponent<DET_ServiceLock_Key>().Open = true;
+                            Chunk.transform.Find("Key").gameObject.SetActive(true);
+                            Chunk.transform.Find("MysteryBox").gameObject.transform.Find("Sign").gameObject.transform.Find("SignPickup").gameObject.transform.GetComponent<ItemPickup>().pickUp(); //So now the player has the plate and in theory the cutscene should begin
                             storage.BooleanList[22] = true;
                             return true;
                         }
@@ -1728,7 +1746,30 @@ namespace SigiMultiplayer
                             MelonLogger.Msg("Error on 26" + e.Message);
                             return true;
                         }
-                        return true;
+                        return false; //this was set as true??? why???
+                    case 27:
+                        try
+                        {
+                            //The numbering of boolean lists has been pissing me the fuck off; its now equal moving forward fuck whatever bullshit system was being used before it was dumb
+                            if (!storage.BooleanList[27])
+                            {
+                                GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_TreeSafe").gameObject;
+                                if (Event == null)
+                                {
+                                    storage.BooleanQueue.Add(message);
+                                    return false;
+                                }
+                                Event.transform.Find("Door").GetComponent<Keypad3D>().solved = true;
+                                storage.BooleanList[27] = true;
+                                return true;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            MelonLogger.Msg("Error on 27" + e.Message);
+                            return true;
+                        }
+                        return false;
                     default:
                         return true;
                 }
@@ -1813,10 +1854,13 @@ namespace SigiMultiplayer
 
                     //Handling Damage; does not need to be returned, actively updated
                     int health = hit.HP;
+                    MelonLogger.Msg("HPA: " + health);
+                    MelonLogger.Msg("HPB: " + hit.HP);
                     if (storage.EnemyHP[tag] > hit.HP)
                     {
                         storage.EnemyHP[tag] = health;
                         string value = $"ED:{tag}={health}";
+                        MelonLogger.Msg("HPC: " + value);
                         storage.MessageCollection.Add(value);
                         //Need to Send Message, Damage was done by this Peer
                     }
@@ -1824,7 +1868,7 @@ namespace SigiMultiplayer
                     {
                         hit.HP = storage.EnemyHP[tag]; //Enemy Took damage from other peer, the logic for reading this is handled by the ServerSide
                     }
-                    if (hit.HP <= 0)
+                    if (hit.HP < 0)
                     {
                         enemiesToRemove.Add(tag); continue; //Enemy is dead stop tracking it
                     }
@@ -1834,6 +1878,7 @@ namespace SigiMultiplayer
                     if(tempVector != null)
                     {
                         string value = ($"EV:{tag}={tempVector.ToString()}");
+                        MelonLogger.Msg(value);
                         storage.MessageCollection.Add(value);
                     }
                     Quaternion? tempQuater = CheckEnemyQuaternion(enemy, tag);
@@ -1856,6 +1901,7 @@ namespace SigiMultiplayer
         }
         public static void InstantiateEnemy(GameObject enemy, int tag)
         {
+            MelonLogger.Msg("Enemy Now Being Tracked: " + tag);
             storage.ManagedEnemies.Add(tag, enemy);
             CheckEnemyVector(enemy, tag);
             CheckEnemyQuaternion(enemy, tag);
@@ -1935,6 +1981,7 @@ namespace SigiMultiplayer
         }
         public static void DealDamage(string message)
         {
+            Console.WriteLine(message);
             int colonIndex = message.IndexOf(':');
             if (colonIndex != -1 && colonIndex < message.Length - 1)
             {
