@@ -32,8 +32,8 @@ namespace SigiMultiplayer
         //Boolean Variables
         public List<string> PENWreckRooms = new List<string>() { "Cryogenics", "Flight Deck", "Mess Hall", "Personell" }; //we do not need rooms without boolean values
         public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
-        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers", "EvidenceStorage", "MensaCorridor", "Kitchen", "Isolation", "SouthWestCorridor", "CellBlockCorridor", "Lockers", "Mensa", "North West Corridor", "MED_Elevator"};
-        public List<string> MEDMedicalsRooms = new List<string>() { "", "South Corridor", "East Corridor", "Sleeping Ward", "West Corrdior", "Morgue", "HDU 2 (Dentist)", "Flooded Corridor", "ICU 1 (TV Room)", "Upper Store Room", "Nurse Station",  };
+        public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers", "EvidenceStorage", "MensaCorridor", "Kitchen", "Isolation", "SouthWestCorridor", "CellBlockCorridor", "Lockers", "Mensa", "North West Corridor", "MED Elevator"};
+        public List<string> MEDMedicalsRooms = new List<string>() { "", "South Corridor", "East Corridor", "Sleeping Ward", "West Corrdior", "Morgue", "HDU 2 (Dentist)", "Flooded Corridor", "ICU 1 (TV Room)", "Upper Store Room", "Nurse Station", "Protektor Bathroom", "Pump Room", "Flooded Bathroom"   };
         public List<bool> BooleanList = Enumerable.Repeat(false, 200).ToList();
         
         //Enemy Variables
@@ -471,6 +471,10 @@ namespace SigiMultiplayer
                     int roomname3 = RoomChecker(storage.DETDetentionRooms); 
                     DET_Detention(roomname3, InternalList);
                     break;
+                case "MED_Medical":
+                    int roomname4 = RoomChecker(storage.MEDMedicalsRooms);
+                    MED_Medical(roomname4, InternalList);
+                    break;
                 default:
                     break;
             }
@@ -698,14 +702,10 @@ namespace SigiMultiplayer
                                 InternalList.Add("14,1");
                             }
                         }
-                    }
-                    catch { }
-                    try
-                    {
                         if (!storage.BooleanList[23])
                         {
                             GameObject Event = GameObject.Find("Events").gameObject.transform.Find("DET_TreeSafe").gameObject;
-                            if (Event.transform.Find("Card") == null)
+                            if (Event.transform.Find("Card").Find("ItemPickup") == null)
                             {
                                 storage.BooleanList[23] = true;
                                 InternalList.Add("24,1");
@@ -818,7 +818,6 @@ namespace SigiMultiplayer
                                 storage.AltControllerState = true;
                                 storage.AltController = GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").gameObject.transform.Find("CameraOrigin").Find("CameraPivot").Find("EventCamera").gameObject;
                                 storage.AltController.GetComponent<Camera>().cullingMask = -1337327360; //now Ellie Can be Seen;
-                                storage.EllieClone.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
                                 GameObject.Find("Events").gameObject.transform.Find("ROT_RadioStation").Find("Mountain").Find("Base").Find("MainBuilding").Find("RadioBuildingDoor_1").gameObject.active = false; //Easter Egg 
                             }
                             if (!storage.BooleanList[19])
@@ -877,7 +876,7 @@ namespace SigiMultiplayer
                             }
                         }
                     }
-                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 8, Bool 3, Enemy Handler " + e.Message + e.StackTrace); }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 8, Bool 4, Enemy Handler " + e.Message + e.StackTrace); }
                     break;
                 case 9:
                     try
@@ -931,7 +930,7 @@ namespace SigiMultiplayer
                             }
                         }
                     }
-                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 8, Enemy Handler " + e.Message + e.StackTrace); }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 11, Bool 8, Enemy Handler " + e.Message + e.StackTrace); }
                     try
                     {
                         if (!storage.ManagedEnemies.ContainsKey(9))
@@ -943,7 +942,7 @@ namespace SigiMultiplayer
                             }
                         }
                     }
-                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 10, Bool 9, Enemy Handler " + e.Message + e.StackTrace); }
+                    catch (Exception e) { MelonLogger.Msg("Failure on Room Case 11, Bool 9, Enemy Handler " + e.Message + e.StackTrace); }
                     try
                     {
                         if (!storage.BooleanList[21])
@@ -1022,6 +1021,7 @@ namespace SigiMultiplayer
                             {
                                 storage.BooleanList[18] = true;
                                 InternalList.Add("19,1");
+                                MelonLogger.Msg("Service Key Picked Up");
                             }
                         }
                     }
@@ -1031,7 +1031,7 @@ namespace SigiMultiplayer
                     break;
             }
         }
-        public static void MED_Medical(int RoomName, List<string> InternalList)
+        public static void MED_Medical(int RoomName, List<string> InternalList) 
         {
             switch (RoomName)
             {
@@ -1243,7 +1243,7 @@ namespace SigiMultiplayer
                     if (!storage.BooleanList[35])
                     {
                         GameObject Chunk = GameObject.Find("Flooded Office (Save Room)").gameObject.transform.Find("Chunk").gameObject;
-                        if (Chunk.transform.Find("ItemPickup_ExamKeyr") == null)
+                        if (Chunk.transform.Find("ItemPickup_ExamKey") == null)
                         {
                             storage.BooleanList[35] = true;
                             InternalList.Add("35,1");
@@ -1375,6 +1375,26 @@ namespace SigiMultiplayer
                     break;
                     
             }
+        }
+        public static void RES_Protektors(int RoomName, List<string> InternalList)
+        {
+
+        }
+        public static void LAB_Nowhere(int RoomName, List<string> InternalList)
+        {
+
+        }
+        public static void MEM_Memory(int RoomName, List<string> InternalList)
+        {
+
+        }
+        public static void REED_CorruptedReEducation(int RoomName, List<string> InternalList)
+        {
+
+        }
+        public static void ROT_Rotfront(int RoomName, List<string> InternalList)
+        {
+
         }
         public static int RoomChecker(List<string> secondarylist)
         {
@@ -2429,11 +2449,18 @@ namespace SigiMultiplayer
         }
         public static void InstantiateEnemy(GameObject enemy, int tag)
         {
-            MelonLogger.Msg("Enemy Now Being Tracked: " + tag);
-            storage.EnemyHP.Add(tag, 1000);
-            storage.ManagedEnemies.Add(tag, enemy);
-            CheckEnemyVector(enemy, tag);
-            CheckEnemyQuaternion(enemy, tag);
+            try
+            {
+                MelonLogger.Msg("Enemy Now Being Tracked: " + tag);
+                storage.EnemyHP.Add(tag, 1000);
+                storage.ManagedEnemies.Add(tag, enemy);
+                CheckEnemyVector(enemy, tag);
+                CheckEnemyQuaternion(enemy, tag);
+            }
+            catch(Exception e)
+            {
+                MelonLogger.Msg("Failure on Enemy Instantiation: " + tag + e.StackTrace);
+            }
         }
         public static Vector3? CheckEnemyVector(GameObject enemy, int tag)
         {
