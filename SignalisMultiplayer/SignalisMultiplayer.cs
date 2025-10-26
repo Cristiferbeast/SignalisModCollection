@@ -34,6 +34,11 @@ namespace SigiMultiplayer
         public List<string> LOVReEducationRooms = new List<string>() { "", "Surface Access", "OverlookOffice", "Library", "Aula", "WestCorridor", "SafeClassroom" };
         public List<string> DETDetentionRooms = new List<string>() { "", "Office", "Pantry", "Rationing", "BathroomSouth", "Showers", "EvidenceStorage", "MensaCorridor", "Kitchen", "Isolation", "SouthWestCorridor", "CellBlockCorridor", "Lockers", "Mensa", "North West Corridor", "MED Elevator"};
         public List<string> MEDMedicalsRooms = new List<string>() { "", "South Corridor", "East Corridor", "Sleeping Ward", "West Corrdior", "Morgue", "HDU 2 (Dentist)", "Flooded Corridor", "ICU 1 (TV Room)", "Upper Store Room", "Nurse Station", "Protektor Bathroom", "Pump Room", "Flooded Bathroom"   };
+        public List<string> RESResidentialRooms = new List<string>() {"", "Maintenance Office (Save Room)", "Common Room", "Service Room", "Adlers Bedroom", "Falkes Office", "Shooting Range", "Rec Room (Save Room)", "Protektor Archive", "EULR Dorm (Music Lover)", "Management Office", "Workshop", "Falkes Bedroom", "Kolibris Study", "Kolibris Bedroom", "6F ElevatorLobby", "Library", "Adlers Study" };
+        public List<string> LABLabyrinthRooms = new List<string>() {"", "Nursery", "Pattern Viewer", "Organ Music Room", "Flesh", "Falke", "Surgery", "Glass Cage Room", "Radio Room", "Shrine Room", "Torture Room", "Sacrifice", "Scale Room", "Chapel", "Tree of Life" };
+        public List<string> MEMMemoryRooms = new List<string>() {"", "Personell", "Upper Gallery" };
+        public List<string> BIOReEducationRooms = new List<string>() {"", "SafeClassroom" };
+        public List<string> ROTRotfront = new List<string>() {"", "Worker Apartment", "Steampipes Corridor", "Garbage Chute (Down)", "Disinfection Room", "Butcher Store", "Computer Store (Save Room)", "Butterfly Apartment", "Dentist Office", "Blockwart Office", "Backyard", "Book Store", "Student Dorm", "Hospital Room", "Packstation", "Lobby"};
         public List<bool> BooleanList = Enumerable.Repeat(false, 200).ToList();
         
         //Enemy Variables
@@ -474,6 +479,32 @@ namespace SigiMultiplayer
                 case "MED_Medical":
                     int roomname4 = RoomChecker(storage.MEDMedicalsRooms);
                     MED_Medical(roomname4, InternalList);
+                    break;
+                case "RES_School":
+                    //This is just a First Person Scene
+                    break;
+                case "RES_Residential":
+                    int roomname5 = RoomChecker(storage.RESResidentialRooms);
+                    RES_Residential(roomname5, InternalList);
+                    break;
+                case "EXC_Mines":
+                    //There are no bools in Mines
+                    break;
+                case "LAB_Labyrinth":
+                    int roomname6 = RoomChecker(storage.LABLabyrinthRooms);
+                    LAB_Nowhere(roomname6, InternalList);
+                    break;
+                case "MEM_Memory":
+                    int roomname7 = RoomChecker(storage.MEMMemoryRooms);
+                    MEM_Memory(roomname7, InternalList);
+                    break;
+                case "BIO_ReEducation":
+                    int roomname8 = RoomChecker(storage.BIOReEducationRooms);
+                    BIO_ReEducation(roomname8, InternalList);
+                    break;
+                case "ROT_Rotfront":
+                    int roomname9 = RoomChecker(storage.ROTRotfront);
+                    ROT_Rotfront(roomname9, InternalList);
                     break;
                 default:
                     break;
@@ -1179,7 +1210,7 @@ namespace SigiMultiplayer
                     {
                         //Cut Content Eule
                         GameObject Chunk = GameObject.Find("Upper Store Room").gameObject.transform.Find("Chunk").Find("ItemPickup_SocketHandle").gameObject;
-                        if (Chunk != null || Chunk.active == true)
+                        if (Chunk == null || Chunk.active != true)
                         {
                             storage.BooleanList[29] = true;
                             InternalList.Add("29,1");
@@ -1376,25 +1407,899 @@ namespace SigiMultiplayer
                     
             }
         }
-        public static void RES_Protektors(int RoomName, List<string> InternalList)
+        public static void RES_Residential(int RoomName, List<string> InternalList)
         {
-
-        }
-        public static void LAB_Nowhere(int RoomName, List<string> InternalList)
-        {
-
-        }
-        public static void MEM_Memory(int RoomName, List<string> InternalList)
-        {
-
-        }
-        public static void REED_CorruptedReEducation(int RoomName, List<string> InternalList)
-        {
-
+            //56
+            switch (RoomName)
+            {
+                case 0:
+                    break;
+                case 1:
+                    if (!storage.BooleanList[56])
+                    {
+                        GameObject Chunk = GameObject.Find("Maintenance Office (Save Room)").gameObject.transform.Find("Chunk").Find("ItemPickup_FloodOverflowKey").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[56] = true;
+                            InternalList.Add("56,1");
+                        }
+                    }
+                    break;
+                case 2:
+                    if (!storage.BooleanList[57])
+                    {
+                        GameObject Chunk = GameObject.Find("Common Room").gameObject.transform.Find("Chunk").Find("ItemPickup_ElevatorFuse").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[57] = true;
+                            InternalList.Add("57,1");
+                        }
+                    }
+                    break;
+                case 3:
+                    if (!storage.BooleanList[58])
+                    {
+                        RES_Power Power = GameObject.Find("Events").gameObject.transform.Find("PowerLogic").GetComponent<RES_Power>();
+                        if(Power != null)
+                        {
+                            if(Power.solved || Power.powered)
+                            {
+                                storage.BooleanList[58] = true;
+                                InternalList.Add("58,1");
+                            }
+                        }
+                    }
+                    break;
+                case 4:
+                    if (!storage.BooleanList[59])
+                    {
+                        GameObject Chunk = GameObject.Find("Adlers Bedroom").gameObject.transform.Find("Chunk").Find("ItemPickup_Flashlight").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[59] = true;
+                            InternalList.Add("59,1");
+                        }
+                    }
+                    break;
+                case 5:
+                    if (!storage.BooleanList[60])
+                    {
+                        GameObject Chunk = GameObject.Find("Falkes Office").gameObject.transform.Find("Chunk").Find("Objects").Find("ShutterDoor").Find("HandlePickup").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[60] = true;
+                            InternalList.Add("60,1");
+                        }
+                    }
+                    break;
+                case 6:
+                    if (!storage.BooleanList[61])
+                    {
+                        GameObject Chunk = GameObject.Find("Shooting Range").gameObject.transform.Find("Chunk").Find("Objects").Find("ItemPickup_Tape").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[61] = true;
+                            InternalList.Add("61,1");
+                        }
+                    }
+                    break;
+                case 7:
+                    if (!storage.BooleanList[62])
+                    {
+                        GameObject Chunk = GameObject.Find("Rec Room(Save Room)").gameObject.transform.Find("Chunk").Find("ItemPickup_OwlKey").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[62] = true;
+                            InternalList.Add("62,1");
+                        }
+                    }
+                    break;
+                case 8:
+                    if (!storage.BooleanList[63])
+                    {
+                        GameObject Chunk = GameObject.Find("Protektor Archive").gameObject.transform.Find("Chunk").Find("ItemPickup_PaintingKey").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[63] = true;
+                            InternalList.Add("63,1");
+                        }
+                    }
+                    break;
+                case 9:
+                    if (!storage.BooleanList[64])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("RES_MusicPlayer").Find("RES_MusicBox_Player").gameObject.transform.Find("Interaction").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[64] = true;
+                            InternalList.Add("64,1");
+                        }
+                    }
+                    break;
+                case 10:
+                    if (!storage.BooleanList[65])
+                    {
+                        DET_ServiceLock_Key Chunk = GameObject.Find("Events").transform.Find("RES_Painting").Find("Lock").GetComponent<DET_ServiceLock_Key>();
+                        if (Chunk.Open)
+                        {
+                            storage.BooleanList[65] = true;
+                            InternalList.Add("65,1");
+                        }
+                    }
+                    if (!storage.BooleanList[66])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("RES_Painting").Find("Pickup").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[66] = true;
+                            InternalList.Add("66,1");
+                        }
+                    }
+                    break;
+                case 11:
+                    if (!storage.BooleanList[67])
+                    {
+                        RES_MusicBox Chunk = GameObject.Find("Events").transform.Find("MusicBoxLogic").GetComponent<RES_MusicBox>();
+                        if (Chunk.hasCassette)
+                        {
+                            storage.BooleanList[67] = true;
+                            InternalList.Add("67,1");
+                        }
+                    }
+                    break;
+                case 12:
+                    if (!storage.BooleanList[68])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("RES_MusicBox").Find("GameObject").Find("RES_MusicBox_Box").Find("Pickup").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[68] = true;
+                            InternalList.Add("68,1");
+                        }
+                    }
+                    break;
+                case 13:
+                    if (!storage.BooleanList[69])
+                    {
+                        GameObject Chunk = GameObject.Find("Kolibris Study").transform.Find("Chunk").Find("GameObject").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[69] = true;
+                            InternalList.Add("69,1");
+                        }
+                    }
+                    break;
+                case 14:
+                    if (!storage.BooleanList[70])
+                    {
+                        GameObject Chunk = GameObject.Find("Kolibris Bedroom").transform.Find("Chunk").Find("ItemPickup_PostboxKey").gameObject;
+                        if (Chunk == null || Chunk.active != true)
+                        {
+                            storage.BooleanList[70] = true;
+                            InternalList.Add("70,1");
+                        }
+                    }
+                    break;
+                case 15:
+                    if (!storage.BooleanList[71])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("RES_PostBox").gameObject.transform.Find("Pickup").gameObject;
+                        if (Chunk == null)
+                        {
+                            storage.BooleanList[71] = true;
+                            InternalList.Add("71,1");
+                        }
+                    }
+                    break;
+                case 16:
+                    if (!storage.BooleanList[72])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("RES_PostBox").gameObject.transform.Find("Pickup").gameObject;
+                        if (Chunk == null)
+                        {
+                            storage.BooleanList[72] = true;
+                            InternalList.Add("72,1");
+                        }
+                    }
+                    break;
+                case 17:
+                    if (!storage.BooleanList[73])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("RES_Library").gameObject.transform.Find("KinginYellow").gameObject;
+                        if (Chunk == null)
+                        {
+                            storage.BooleanList[73] = true;
+                            InternalList.Add("73,1");
+                        }
+                    }
+                    break;
+                case 18:
+                    if (!storage.BooleanList[74])
+                    {
+                        RES_Shrine Chunk = GameObject.Find("Events").transform.Find("RES_Shrine").Find("ShrineLogic").GetComponent<RES_Shrine>();
+                        if (Chunk.solved)
+                        {
+                            storage.BooleanList[74] = true;
+                            InternalList.Add("74,1");
+                        }
+                    }
+                    if (!storage.BooleanList[75])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("RES_Shrine").Find("RES_Shrine").Find("RES_Shrine_Base").Find("Content").Find("CardPickup").gameObject;
+                        if (Chunk == null)
+                        {
+                            storage.BooleanList[75] = true;
+                            InternalList.Add("75,1");
+                        }
+                    }
+                    break;
+            }
         }
         public static void ROT_Rotfront(int RoomName, List<string> InternalList)
         {
+            //Resume from 76; 
+            switch (RoomName)
+            {
+                case 0:
+                    break;
+                case 1:
+                    if (!storage.BooleanList[76])
+                    {
+                        GameObject Chunk = GameObject.Find("Worker Apartment").transform.Find("Chunk").gameObject;
+                        if(Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ItemPickup_ValveHandwheel") == null)
+                            {
+                                storage.BooleanList[76] = true;
+                                InternalList.Add("76,1");
+                            }
+                        }
+                    }
+                    break;
+                case 2:
+                    if (!storage.BooleanList[77])
+                    {
+                        GameObject Chunk = GameObject.Find("Steampipes Corridor").transform.Find("Chunk").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("InstantChunk") == null)
+                            {
+                                storage.BooleanList[77] = true;
+                                InternalList.Add("77,1");
+                            }
+                        }
+                    }
+                    break;
+                case 3:
+                    if (!storage.BooleanList[78])
+                    {
+                        GameObject Chunk = GameObject.Find("Garbage Chute (Down)").transform.Find("Chunk").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ItemPickup_DiskBlue") == null)
+                            {
+                                storage.BooleanList[78] = true;
+                                InternalList.Add("78,1");
+                            }
+                        }
+                    }
+                    break;
+                case 4:
+                    if (!storage.BooleanList[79])
+                    {
+                        GameObject Chunk = GameObject.Find("Disinfection Room").transform.Find("Chunk").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ItemPickup_Turpentine") == null)
+                            {
+                                storage.BooleanList[79] = true;
+                                InternalList.Add("79,1");
+                            }
+                        }
+                    }
+                    break;
+                case 5:
+                    if (!storage.BooleanList[80])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Tower").Find("ROT_Tower_Tray").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("CardPickup").Find("Interaction") == null)
+                            {
+                                storage.BooleanList[80] = true;
+                                InternalList.Add("80,1");
+                            }
+                        }
+                    }
+                    break;
+                case 6:
+                    if (!storage.BooleanList[81])
+                    {
+                        GameObject Chunk = GameObject.Find("Computer Store (Save Room)").transform.Find("Chunk").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ItemPickup_MeatKey") == null)
+                            {
+                                storage.BooleanList[81] = true;
+                                InternalList.Add("81,1");
+                            }
+                        }
+                    }
+                    break;
+                case 7:
+                    if (!storage.BooleanList[82])
+                    {
+                        GameObject Chunk = GameObject.Find("Computer Store (Save Room)").transform.Find("Chunk").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ItemPickup_MeatKey") == null)
+                            {
+                                storage.BooleanList[82] = true;
+                                InternalList.Add("82,1");
+                            }
+                        }
+                    }
+                    break;
+                case 8:
+                    if (!storage.BooleanList[83])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_ButterflySafe").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ROT_ButterflyBox").Find("CardPickup").Find("Interaction") == null)
+                            {
+                                storage.BooleanList[83] = true;
+                                InternalList.Add("83,1");
+                            }
+                        }
+                    }
+                    if (!storage.BooleanList[84])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_ButterflySafe").gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("PadlockLogic").GetComponent<ROT_DialLock>().solved)
+                            {
+                                storage.BooleanList[84] = true;
+                                InternalList.Add("84,1");
+                            }
+                        }
+                    }
+                    break;
+                case 9:
+                    if (!storage.BooleanList[85])
+                    {
+                        GameObject Chunk = GameObject.Find("Dentist Office").transform.Find("Chunk").gameObject.gameObject;
+                        if (Chunk != null || Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ItemPickup_DiskRed") == null)
+                            {
+                                storage.BooleanList[85] = true;
+                                InternalList.Add("85,1");
+                            }
+                        }
+                    }
+                    break;
+                case 10:
+                    if (!storage.BooleanList[86])
+                    {
+                        ROT_DiskManager Chunk = GameObject.Find("Events").transform.Find("ROT_PC").Find("Disk Logic").gameObject.GetComponent<ROT_DiskManager>();
+                        if (Chunk != null)
+                        {
+                            if (Chunk.red)
+                            {
+                                storage.BooleanList[86] = true;
+                                InternalList.Add("86,1");
+                            }
+                        }
+                    }
+                    if (!storage.BooleanList[87])
+                    {
+                        ROT_DiskManager Chunk = GameObject.Find("Events").transform.Find("ROT_PC").Find("Disk Logic").gameObject.GetComponent<ROT_DiskManager>();
+                        if (Chunk != null)
+                        {
+                            if (Chunk.blue)
+                            {
+                                storage.BooleanList[87] = true;
+                                InternalList.Add("87,1");
+                            }
+                        }
+                    }
+                    if (!storage.BooleanList[88])
+                    {
+                        //FYI in the future we can pass the logic for the p2p value manually but for now lets just handle the correct value
+                        ROT_RadioAlignment Chunk = GameObject.Find("RadioAlignmentManager").GetComponent<ROT_RadioAlignment>();
+                        if (Chunk != null)
+                        {
+                            if (Chunk.TargetRotEast == 42 && Chunk.TargetRotWest == 324)
+                            {
+                                storage.BooleanList[88] = true;
+                                InternalList.Add("88,1");
+                            }
+                        }
+                    }
+                    //if (storage.BooleanList[89]) : Placeholder Bool for Transmit
+                    break;
+                case 11:
+                    if (!storage.BooleanList[90])
+                    {
+                        ROT_Keypad Chunk = GameObject.Find("Events").transform.Find("KeypadLogic").GetComponent<ROT_Keypad>();
+                        if(Chunk.solved)
+                        {
+                            storage.BooleanList[90] = true;
+                            InternalList.Add("90,1");
+                        }
+                    }
+                    break;
+                case 12:
+                    try
+                    {
+                        if (!storage.BooleanList[91])
+                        {
+                            CutsceneManager Cutscene = GameObject.Find("Cutscenes").gameObject.transform.Find("Isa Death").gameObject.GetComponent<CutsceneManager>();
+                            if (Cutscene.completed)
+                            {
+                                storage.BooleanList[91] = true;
+                                InternalList.Add("91,1");
+                            }
+                        }
+                    }
+                    catch { }
+                    if (storage.BooleanList[92])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Death").gameObject;
+                        if (Chunk.transform.Find("CardPickup").Find("Interaction").gameObject == null)
+                        {
+                            storage.BooleanList[92] = true;
+                            InternalList.Add("92,1");
+                        }
+                    }
+                    break;
+                case 13:
+                    if (!storage.BooleanList[93])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Painting").Find("Pivot").Find("Painting").gameObject;
+                        if (Chunk.transform.Find("Pickup").Find("CardPickup").Find("Interaction") == null)
+                        {
+                            storage.BooleanList[93] = true;
+                            InternalList.Add("93,1");
+                        }
+                    }
+                    break;
+                case 14:
+                    if (!storage.BooleanList[94])
+                    {
+                        ROT_Magpie Chunk = GameObject.Find("Events").transform.Find("ROT_Magpie").GetComponent<ROT_Magpie>();
+                        if (Chunk.opened)
+                        {
+                            storage.BooleanList[94] = true;
+                            InternalList.Add("94,1");
+                        }
+                    }
+                    break;
+                case 15:
+                    if (!storage.BooleanList[94])
+                    {
+                        ROT_Magpie Chunk = GameObject.Find("Events").transform.Find("ROT_Magpie").GetComponent<ROT_Magpie>();
+                        if (Chunk.opened)
+                        {
+                            storage.BooleanList[94] = true;
+                            InternalList.Add("94,1");
+                        }
+                    }
+                    if (!storage.BooleanList[95])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Magpie").Find("ROT_MagpieBox").Find("Pickups").gameObject;
+                        if (Chunk != null)
+                        {
+                            if (Chunk.transform.Find("Interaction") == null)
+                            {
+                                storage.BooleanList[95] = true;
+                                InternalList.Add("95,1");
+                            }
+                        }//Interaction1
+                    }
+                    if (!storage.BooleanList[96])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Magpie").Find("ROT_MagpieBox").Find("Pickups").gameObject;
+                        if (Chunk != null)
+                        {
+                            if (Chunk.transform.Find("Interaction1") == null)
+                            {
+                                storage.BooleanList[96] = true;
+                                InternalList.Add("96,1");
+                            }
+                        }
+                    }
+                    break;
+                case 16:
+                    if (!storage.BooleanList[97])
+                    {
+                        GameObject Chunk = GameObject.Find("Photo Store").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_DeveloperFluid") == null)
+                        {
+                            storage.BooleanList[97] = true;
+                            InternalList.Add("97,1");
+                        }
+                    }
+                    break;
+                case 17:
+                    if (!storage.BooleanList[98])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Packstation").Find("Logic").gameObject;
+                        if (Chunk.GetComponent<DET_ServiceLock_Key>().Open)
+                        {
+                            storage.BooleanList[98] = true;
+                            InternalList.Add("98,1");
+                        }
+                    }
+                    if (!storage.BooleanList[99])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Packstation").Find("Pickups").gameObject;
+                        if (Chunk.transform.Find("CardPickup").Find("Interaction") == null)
+                        {
+                            storage.BooleanList[99] = true;
+                            InternalList.Add("99,1");
+                        }
+                    }
+                    break;
+                case 18:
+                    if (!storage.BooleanList[100])
+                    {
+                        GameObject Chunk = GameObject.Find("Lobby");
+                        if(Chunk.transform.Find("MeatVersion").gameObject.active)
+                        {
+                            storage.BooleanList[100] = true;
+                            InternalList.Add("100,1");
+                        }
+                    }
+                    if (storage.BooleanList[100] && !storage.BooleanList[101])
+                    {
+                        GameObject Chunk = GameObject.Find("Lobby");
+                        if (Chunk.transform.Find("MeatVersion").Find("ItemPickup_MoonRing") == null)
+                        {
+                            storage.BooleanList[101] = true;
+                            InternalList.Add("101,1");
+                        }
+                    }
+                    if (!storage.BooleanList[102])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Mural").gameObject;
+                        if (Chunk.active)
+                        {
+                            if (Chunk.transform.Find("ROT_MUral").Find("Rotfront").Find("Ringactive").gameObject.active)
+                            {
+                                storage.BooleanList[102] = true;
+                                InternalList.Add("102,1");
+                            }
+                        }
+                    }
+                    if (!storage.BooleanList[103])
+                    {
+                        ROT_Mural Chunk = GameObject.Find("Events").transform.Find("MuralLogic").gameObject.GetComponent<ROT_Mural>();
+                        if (Chunk.finished)
+                        {
+                            storage.BooleanList[103] = true;
+                            InternalList.Add("103,1");
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        public static void MEM_Memory(int RoomName, List<string> InternalList)
+        {
+            switch (RoomName)
+            {
+                case 0:
+                    break;
+                case 1:
+                    //Disable Elster Appearing in the Cute Scene
+                    break;
+                case 2:
+                    if (!storage.BooleanList[49])
+                    {
+                        MEM_ChecklistLogic Checklist = GameObject.Find("ChecklistLogic").GetComponent<MEM_ChecklistLogic>();
+                        if (Checklist.CheckIfComplete() || (storage.BooleanList[50] && storage.BooleanList[51] && storage.BooleanList[52] && storage.BooleanList[53]))
 
+                            //This is the "All Items Have Been Completed Logic; Only to be Fired Off When You Enter this Room 
+                            storage.BooleanList[49] = true;
+                        InternalList.Add("49,1");
+                    }
+                    break;
+                case 3:
+                    if (!storage.BooleanList[50])
+                    {
+                        storage.BooleanList[50] = true;
+                        InternalList.Add("50,1");
+                    }
+                    break;
+                case 4:
+                    if (!storage.BooleanList[51])
+                    {
+                        storage.BooleanList[51] = true;
+                        InternalList.Add("51,1");
+                    }
+                    break;
+                case 5:
+                    if (!storage.BooleanList[52])
+                    {
+                        storage.BooleanList[52] = true;
+                        InternalList.Add("52,1");
+                    }
+                    break;
+                case 6:
+                    if (!storage.BooleanList[53])
+                    {
+                        storage.BooleanList[53] = true;
+                        InternalList.Add("53,1");
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        public static void BIO_ReEducation(int RoomName, List<string> InternalList) {
+            switch (RoomName)
+            {
+                //54
+                case 0:
+                    break;
+                case 1:
+                    if (!storage.BooleanList[54])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_ClassSafe").gameObject;
+                        if (Chunk != null || Chunk.active == true)
+                        {
+                            if (Chunk.transform.Find("Door").gameObject.transform.Find("Buttons").GetComponent<Keypad3D>().solved)
+                            {
+                                storage.BooleanList[54] = true;
+                                InternalList.Add("54,1");
+                            }
+                        }
+                    }
+                    if (!storage.BooleanList[55])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").gameObject.transform.Find("LOV_ClassSafe").gameObject;
+                        if (Chunk != null || Chunk.active == true)
+                        {
+                            if (Chunk.transform.Find("Card").gameObject.transform.Find("ItemPickup") == null)
+                            {
+                                storage.BooleanList[55] = true;
+                                InternalList.Add("55,1");
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+        public static void LAB_Nowhere(int RoomName, List<string> InternalList)
+        {
+            switch (RoomName)
+            {
+                case 0:
+                    break;
+                case 1:
+                    if (!storage.BooleanList[104])
+                    {
+                        GameObject Chunk = GameObject.Find("Nursery").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_Doll_B") == null)
+                        {
+                            storage.BooleanList[104] = true;
+                            InternalList.Add("104,1");
+                        }
+                    }
+                    break;
+                case 2:
+                    if (!storage.BooleanList[105])
+                    {
+                        GameObject Chunk = GameObject.Find("Pattern Viewer").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_RingBride") == null)
+                        {
+                            storage.BooleanList[105] = true;
+                            InternalList.Add("105,1");
+                        }
+                    }
+                    break;
+                case 3:
+                    if (!storage.BooleanList[106])
+                    {
+                        GameObject Chunk = GameObject.Find("Organ Music Room").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_RingReagant") == null)
+                        {
+                            storage.BooleanList[106] = true;
+                            InternalList.Add("106,1");
+                        }
+                    }
+                    break;
+                case 4:
+                    if (!storage.BooleanList[107])
+                    {
+                        GameObject Chunk = GameObject.Find("Flesh").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_PlateFlesh") == null)
+                        {
+                            storage.BooleanList[107] = true;
+                            InternalList.Add("107,1");
+                        }
+                    }
+                    if (!storage.BooleanList[108])
+                    {
+                        GameObject Chunk = GameObject.Find("Flesh").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_RustedKey") == null)
+                        {
+                            storage.BooleanList[108] = true;
+                            InternalList.Add("108,1");
+                        }
+                    }
+                    break;
+                case 5:
+                    if (!storage.BooleanList[109])
+                    {
+                        GameObject Chunk = GameObject.Find("Falke").transform.Find("Chunk").Find("Objects").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_Salts") == null)
+                        {
+                            storage.BooleanList[109] = true;
+                            InternalList.Add("109,1");
+                        }
+                    }
+                    break;
+                case 6:
+                    if (!storage.BooleanList[110])
+                    {
+                        GameObject Chunk = GameObject.Find("Surgery").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_Doll_S") == null)
+                        {
+                            storage.BooleanList[110] = true;
+                            InternalList.Add("110,1");
+                        }
+                    }
+                    break;
+                case 7:
+                    if (!storage.BooleanList[111])
+                    {
+                        GameObject Chunk = GameObject.Find("Glass Cage Room").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_RingSerpent") == null)
+                        {
+                            storage.BooleanList[111] = true;
+                            InternalList.Add("111,1");
+                        }
+                    }
+                    break;
+                case 8:
+                    if (!storage.BooleanList[112])
+                    {
+                        GameObject Chunk = GameObject.Find("Radio Room").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_Incense") == null)
+                        {
+                            storage.BooleanList[112] = true;
+                            InternalList.Add("112,1");
+                        }
+                    }
+                    break;
+                case 9:
+                    if (!storage.BooleanList[113])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_Shrine").gameObject;
+                        if (Chunk.transform.Find("LAB_Joss").gameObject.active)
+                        {
+                            storage.BooleanList[113] = true;
+                            InternalList.Add("113,1");
+                        }
+                    }
+                    if (!storage.BooleanList[114])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_Shrine").gameObject;
+                        if (Chunk.transform.Find("Plate").Find("Pickup Plate Knowledge").Find("Plate") == null)
+                        {
+                            storage.BooleanList[114] = true;
+                            InternalList.Add("114,1");
+                        }
+                    }
+                    break;
+                case 10:
+                    if (!storage.BooleanList[115])
+                    {
+                        GameObject Chunk = GameObject.Find("Torture Room").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_Doll_M").gameObject.active)
+                        {
+                            storage.BooleanList[115] = true;
+                            InternalList.Add("115,1");
+                        }
+                    }
+                    break;
+                case 11:
+                    if (!storage.BooleanList[116])
+                    {
+                        GameObject Chunk = GameObject.Find("Sacrifice").transform.Find("Chunk").gameObject;
+                        if (Chunk.transform.Find("ItemPickup_PlateSacrifice").gameObject.active)
+                        {
+                            storage.BooleanList[116] = true;
+                            InternalList.Add("116,1");
+                        }
+                    }
+                    break;
+                case 12:
+                    if (!storage.BooleanList[117])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_Waage").Find("Pivot").Find("LAB_Waage_Top").gameObject;
+                        if (Chunk.transform.Find("Pickup BMS").gameObject.active)
+                        {
+                            storage.BooleanList[117] = true;
+                            InternalList.Add("117,1");
+                        }
+                    }
+                    break;
+                case 13:
+                    if (!storage.BooleanList[118])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_RingsLogic").gameObject;
+                        if (Chunk.transform.Find("LAB_RingsLogic").GetComponent<LAB_Rings>().solved)
+                        {
+                            storage.BooleanList[118] = true;
+                            InternalList.Add("118,1");
+                        }
+                    }
+                    if (!storage.BooleanList[119])
+                    {
+                        GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_RingsLogic").gameObject;
+                        if (Chunk.transform.Find("Pivot").Find("Pickup Plate Knowledge").Find("Plate") == null)
+                        {
+                            storage.BooleanList[119] = true;
+                            InternalList.Add("119,1");
+                        }
+                    }
+                    break;
+                case 14:
+                    if (!storage.BooleanList[120])
+                    {
+                        GameObject Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject;
+                        if (Chunk.GetComponent<LAB_MultiLock>().Earth)
+                        {
+                            storage.BooleanList[120] = true;
+                            InternalList.Add("120,1");
+                        }
+                    }
+                    if (!storage.BooleanList[121])
+                    {
+                        GameObject Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject;
+                        if (Chunk.GetComponent<LAB_MultiLock>().Air)
+                        {
+                            storage.BooleanList[121] = true;
+                            InternalList.Add("121,1");
+                        }
+                    }
+                    if (!storage.BooleanList[122])
+                    {
+                        GameObject Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject;
+                        if (Chunk.GetComponent<LAB_MultiLock>().Fire)
+                        {
+                            storage.BooleanList[122] = true;
+                            InternalList.Add("122,1");
+                        }
+                    }
+                    if (!storage.BooleanList[123])
+                    {
+                        GameObject Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject;
+                        if (Chunk.GetComponent<LAB_MultiLock>().Water)
+                        {
+                            storage.BooleanList[123] = true;
+                            InternalList.Add("123,1");
+                        }
+                    }
+                    if (!storage.BooleanList[124])
+                    {
+                        GameObject Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject;
+                        if (Chunk.GetComponent<LAB_MultiLock>().Gold)
+                        {
+                            storage.BooleanList[124] = true;
+                            InternalList.Add("124,1");
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
         public static int RoomChecker(List<string> secondarylist)
         {
@@ -2308,6 +3213,298 @@ namespace SigiMultiplayer
                             return true;
                         }
                         return false;
+                    case 49:
+                        if (!storage.BooleanList[49])
+                        {
+                            MEM_ChecklistLogic.forceComplete = true;
+                        }
+                        return true;
+                    case 50:
+                        if (!storage.BooleanList[50])
+                        {
+                            storage.BooleanList[50] = true;
+                        }
+                        return true;
+                    case 51:
+                        if (!storage.BooleanList[51])
+                        {
+                            storage.BooleanList[51] = true;
+                        }
+                        return true;
+                    case 52:
+                        if (!storage.BooleanList[52])
+                        {
+                            storage.BooleanList[52] = true;
+                        }
+                        return true;
+                    case 53:
+                        if (!storage.BooleanList[53])
+                        {
+                            storage.BooleanList[53] = true;
+                        }
+                        return true;
+                    case 56:
+                        if (!storage.BooleanList[56])
+                        {
+                            GameObject Chunk = GameObject.Find("Maintenance Office (Save Room)").gameObject.transform.Find("Chunk").Find("ItemPickup_FloodOverflowKey").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[56] = true;
+                        }
+                        return true;
+                    case 57:
+                        if (!storage.BooleanList[57])
+                        {
+                            GameObject Chunk = GameObject.Find("Common Room").gameObject.transform.Find("Chunk").Find("ItemPickup_ElevatorFuse").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[57] = true;
+                        }
+                        return true;
+                    case 58:
+                        if (!storage.BooleanList[58])
+                        {
+                            RES_Power Power = GameObject.Find("Events").transform.Find("PowerLogic").GetComponent<RES_Power>();
+                            if (Power == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Power.solved = true;
+                            Power.powered = true;
+                            storage.BooleanList[58] = true;
+                        }
+                        return true ;
+                    case 59:
+                        if (!storage.BooleanList[59])
+                        {
+                            GameObject Chunk = GameObject.Find("Adlers Bedroom").gameObject.transform.Find("Chunk").Find("ItemPickup_Flashlight").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[59] = true;
+                        }
+                        return true;
+                    case 60:
+                        if (!storage.BooleanList[60])
+                        {
+                            GameObject Chunk = GameObject.Find("Falkes Office").gameObject.transform.Find("Chunk").Find("Objects").Find("ShutterDoor").Find("HandlePickup").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[60] = true;
+                        }
+                        return true;
+                    case 61:
+                        if (!storage.BooleanList[61])
+                        {
+                            GameObject Chunk = GameObject.Find("Shooting Range").gameObject.transform.Find("Chunk").Find("Objects").Find("ItemPickup_Tape").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[61] = true;
+                        }
+                        return true;
+                    case 62:
+                        if (!storage.BooleanList[62])
+                        {
+                            GameObject Chunk = GameObject.Find("Rec Room(Save Room)").gameObject.transform.Find("Chunk").Find("ItemPickup_OwlKey").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[62] = true;
+                        }
+                        return true;
+                    case 63:
+                        if (!storage.BooleanList[63])
+                        {
+                            GameObject Chunk = GameObject.Find("Protektor Archive").gameObject.transform.Find("Chunk").Find("ItemPickup_PaintingKey").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[63] = true;
+                        }
+                        return true;
+                    case 64:
+                        //Needs to be Fixed
+                        if (!storage.BooleanList[64])
+                        {
+                            MelonLogger.Msg("Fail on 64 due to Integral Logic Error");
+                            /*GameObject Chunk = GameObject.Find("Events").Find("RES_MusicPlayer").Find("RES_MusicBox_Player").gameObject.transform.Find("Interaction").Find("").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[64] = true;*/
+                        }
+                        return true;
+                    case 65:
+                        if (!storage.BooleanList[65])
+                        {
+                            DET_ServiceLock_Key Chunk = GameObject.Find("Events").transform.Find("RES_Painting").Find("Lock").GetComponent<DET_ServiceLock_Key>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[65] = true;
+                        }
+                        return true;
+                    case 66:
+                        if (!storage.BooleanList[66])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("RES_Painting").Find("Pickup").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[66] = true;
+                        }
+                        return true;
+                    case 67:
+                        if (!storage.BooleanList[67])
+                        {
+                            RES_MusicBox Chunk = GameObject.Find("Events").transform.Find("MusicBoxLogic").GetComponent<RES_MusicBox>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.hasCassette = true;
+                            storage.BooleanList[67] = true;
+                        }
+                        return true;
+                    case 68:
+                        if (!storage.BooleanList[68])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("RES_MusicBox").Find("GameObject").Find("RES_MusicBox_Box").Find("Pickup").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[68] = true;
+                        }
+                        return true;
+                    case 69:
+                        if (!storage.BooleanList[69])
+                        {
+                            MelonLogger.Msg("Fail on 69 due to Integral Logic Error");
+                            /*GameObject Chunk = GameObject.Find("Kolibris Study").gameObject.transform.Find("Chunk").Find("GameObject").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[69] = true;*/
+                        }
+                        return true;
+                    case 70:
+                        if (!storage.BooleanList[70])
+                        {
+                            GameObject Chunk = GameObject.Find("Kolibris Bedroom").gameObject.transform.Find("Chunk").Find("ItemPickup_PostboxKey").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[70] = true;
+                        }
+                        return true;
+                    case 71:
+                        if (!storage.BooleanList[71])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("RES_PostBox").gameObject.transform.Find("Pickup").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[71] = true;
+                        }
+                        return true;
+                    case 72:
+                        if (!storage.BooleanList[72])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("RES_PostBox").gameObject.transform.Find("Pickup").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[72] = true;
+                        }
+                        return true;
+                    case 73:
+                        if (!storage.BooleanList[73])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("RES_Library").gameObject.transform.Find("KinginYellow").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[73] = true;
+                        }
+                        return true;
+                    case 74:
+                        if (!storage.BooleanList[74])
+                        {
+                            RES_Shrine Chunk = GameObject.Find("Events").transform.Find("RES_Shrine").Find("ShrineLogic").GetComponent<RES_Shrine>();
+                            if(Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.solved = true;
+                            storage.BooleanList[74] = true;
+                        }
+                        return true ;
+                    case 75:
+                        if (!storage.BooleanList[75])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("RES_Shrine").Find("RES_Shrine").Find("RES_Shrine_Base").Find("Content").Find("CardPickup").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[75] = true;
+                        }
+                        return true;
                     default:
                         return false;
                 }
