@@ -3505,6 +3505,635 @@ namespace SigiMultiplayer
                             storage.BooleanList[75] = true;
                         }
                         return true;
+                    case 76:
+                        if (!storage.BooleanList[76])
+                        {
+                            GameObject Chunk = GameObject.Find("Worker Apartment").transform.Find("Chunk").Find("ItemPickup_ValveHandwheel").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[76] = true;
+                        }
+                        return true;
+                    case 77:
+                        if (!storage.BooleanList[77])
+                        {
+                            GameObject Chunk = GameObject.Find("Steampipes Corridor").transform.Find("Chunk").Find("InstantChunk").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.active = false;
+                            storage.BooleanList[77] = true;
+                        }
+                        return true;
+                    case 78:
+                        if (!storage.BooleanList[78])
+                        {
+                            GameObject Chunk = GameObject.Find("Garbage Chute (Down)").transform.Find("Chunk").Find("ItemPickup_DiskBlue").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[78] = true;
+                        }
+                        return true;
+                    case 79:
+                        if (!storage.BooleanList[79])
+                        {
+                            GameObject Chunk = GameObject.Find("Disinfection Room").transform.Find("Chunk").Find("ItemPickup_Turpentine").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[79] = true;
+                        }
+                        return true;
+                    case 80:
+                        if (!storage.BooleanList[80])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Tower").Find("ROT_Tower_Tray").Find("CardPickup").Find("Interaction").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[80] = true;
+                        }
+                        return true;
+                    case 81:
+                        if (!storage.BooleanList[81])
+                        {
+                            GameObject Chunk = GameObject.Find("Computer Store (Save Room)").transform.Find("Chunk").Find("ItemPickup_MeatKey").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[81] = true;
+                        }
+                        return true;
+                    case 82:
+                        if (!storage.BooleanList[82])
+                        {
+                            GameObject Chunk = GameObject.Find("Computer Store (Save Room)").transform.Find("Chunk").Find("ItemPickup_MeatKey").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[82] = true;
+                        }
+                        return true;
+                    case 83:
+                        if (!storage.BooleanList[83])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_ButterflySafe").Find("ROT_ButterflyBox").Find("CardPickup").Find("Interaction").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[83] = true;
+                        }
+                        return true;
+                    case 84:
+                        if (!storage.BooleanList[84])
+                        {
+                            ROT_DialLock Chunk = GameObject.Find("Events").transform.Find("ROT_ButterflySafe").Find("PadlockLogic").GetComponent<ROT_DialLock>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.solved = true;
+                            Chunk.Door.gameObject.SetActive(false); //this may fail miserably
+                            storage.BooleanList[84] = true;
+                        }
+                        return true;
+                    case 85:
+                        if (!storage.BooleanList[85])
+                        {
+                            GameObject Chunk = GameObject.Find("Dentist Office").transform.Find("Chunk").Find("ItemPickup_DiskRed").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[85] = true;
+                        }
+                        return true;
+                    case 86:
+                        if (!storage.BooleanList[86])
+                        {
+                            ROT_DiskManager Chunk = GameObject.Find("Events").transform.Find("ROT_PC").Find("Disk Logic").gameObject.GetComponent<ROT_DiskManager>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.InsertDiskRed();
+                            storage.BooleanList[86] = true;
+                        }
+                        return true;
+                    case 87:
+                        if (!storage.BooleanList[87])
+                        {
+                            ROT_DiskManager Chunk = GameObject.Find("Events").transform.Find("ROT_PC").Find("Disk Logic").gameObject.GetComponent<ROT_DiskManager>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.InsertDiskBlue();
+                            storage.BooleanList[87] = true;
+                        }
+                        return true;
+                    case 88:
+                        if (!storage.BooleanList[88])
+                        {
+                            ROT_RadioAlignment Chunk = GameObject.Find("RadioAlignmentManager").GetComponent<ROT_RadioAlignment>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.TargetRotEast = 42;
+                            Chunk.TargetRotWest = 324;
+                            storage.BooleanList[88] = true;
+                        }
+                        return true;
+                    case 89:
+                        //if (storage.BooleanList[89]) : Placeholder Bool for Transmit
+                        return true;
+                    case 90:
+                        if (!storage.BooleanList[90])
+                        {
+                            ROT_Keypad Chunk = GameObject.Find("Events").transform.Find("KeypadLogic").GetComponent<ROT_Keypad>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.solved = true;
+                            Chunk.solution = "";
+                        }
+                        return true;
+                    case 91:
+                        try
+                        {
+                            if (!storage.BooleanList[91])
+                            {
+                                storage.Cheats.cheats("goto book store");
+                            }
+                        }
+                        catch {
+                            return false;
+                        }
+                        return true;
+                    case 92:
+                        if (storage.BooleanList[92])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Death").Find("CardPickup").Find("Interaction").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[92] = true;
+                        }
+                        return true;
+                    case 93:
+                        if (!storage.BooleanList[93])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Painting").Find("Pivot").Find("Painting").Find("Pickup").Find("CardPickup").Find("Interaction").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[93] = true;
+                        }
+                        return true;
+                    case 94:
+                        if (!storage.BooleanList[94])
+                        {
+                            ROT_Magpie Chunk = GameObject.Find("Events").transform.Find("ROT_Magpie").GetComponent<ROT_Magpie>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.playingMagpie = true;
+                            Chunk.opened = true;
+                            Chunk.euleOpened = 1;
+                            storage.BooleanList[94] = true;
+                        }
+                        return true;
+                    case 95: 
+                        if (!storage.BooleanList[95])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Magpie").Find("ROT_MagpieBox").Find("Pickups").Find("Interaction").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[95] = true;
+                        }
+                        return true;
+                    case 96:
+                        if (!storage.BooleanList[96])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Magpie").Find("ROT_MagpieBox").Find("Pickups").Find("Interaction1").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[96] = true;
+                        }
+                        return true;
+                    case 97:
+                        if (!storage.BooleanList[97])
+                        {
+                            GameObject Chunk = GameObject.Find("Photo Store").transform.Find("Chunk").Find("ItemPickup_DeveloperFluid").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[97] = true;
+                        }
+                        return true;
+                    case 98:
+                        if (!storage.BooleanList[98])
+                        {
+                            DET_ServiceLock_Key Chunk = GameObject.Find("Events").transform.Find("ROT_Packstation").Find("Logic").gameObject.GetComponent<DET_ServiceLock_Key>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.Open = true;
+                            storage.BooleanList[98] = true;
+                        }
+                        return true;
+                    case 99:
+                        if (!storage.BooleanList[99])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Packstation").Find("Pickups").Find("CardPickup").Find("Interaction").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[99] = true;
+                        }
+                        return true;
+                    case 100:
+                        if (!storage.BooleanList[100])
+                        {
+                            GameObject.Find("Lobby").transform.Find("MeatVersion").gameObject.SetActive(true);
+                            storage.BooleanList[100] = true;
+                        }
+                        return true;
+                    case 101:
+                        if (!storage.BooleanList[101])
+                        {
+                            GameObject Chunk = GameObject.Find("Lobby").transform.Find("MeatVersion").Find("ItemPickup_MoonRing").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[101] = true;
+                        }
+                        return true;
+                    case 102:
+                        if (!storage.BooleanList[102])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("ROT_Mural").Find("ROT_Mural").Find("Rotfront").Find("Ringactive").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.SetActive(true);
+                            storage.BooleanList[102] = true;
+                        }
+                        return true;
+                    case 103:
+                        if (!storage.BooleanList[103])
+                        {
+                            try
+                            {
+                                ROT_Mural Chunk = GameObject.Find("Events").transform.Find("MuralLogic").gameObject.GetComponent<ROT_Mural>();
+                                Chunk.finished = true;
+                                storage.Cheats.cheats("mondenkind");
+                                storage.BooleanList[103] = true;
+                            }
+                            catch
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                        }
+                        return true;
+                    case 104:
+                        if (!storage.BooleanList[104])
+                        {
+                            GameObject Chunk = GameObject.Find("Nursery").transform.Find("Chunk").Find("ItemPickup_Doll_B").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[104] = true;
+                        }
+                        return true;
+                    case 105:
+                        if (!storage.BooleanList[105])
+                        {
+                            GameObject Chunk = GameObject.Find("Pattern Viewer").transform.Find("Chunk").Find("ItemPickup_RingBride").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[105] = true;
+                        }
+                        return true;
+                    case 106:
+                        if (!storage.BooleanList[106])
+                        {
+                            GameObject Chunk = GameObject.Find("Organ Music Room").transform.Find("Chunk").Find("ItemPickup_RingReagant").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[106] = true;
+                        }
+                        return true;
+                    case 107:
+                        if (!storage.BooleanList[107])
+                        {
+                            GameObject Chunk = GameObject.Find("Flesh").transform.Find("Chunk").Find("ItemPickup_PlateFlesh").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[107] = true;
+                        }
+                        return true;
+                    case 108:
+                        if (!storage.BooleanList[108])
+                        {
+                            GameObject Chunk = GameObject.Find("Flesh").transform.Find("Chunk").Find("ItemPickup_RustedKey").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[108] = true;
+                        }
+                        return true;
+                    case 109:
+                        if (!storage.BooleanList[109])
+                        {
+                            GameObject Chunk = GameObject.Find("Falke").transform.Find("Chunk").Find("Objects").Find("ItemPickup_Salts").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[109] = true;
+                        }
+                        return true;
+                    case 110:
+                        if (!storage.BooleanList[110])
+                        {
+                            GameObject Chunk = GameObject.Find("Surgery").transform.Find("Chunk").Find("ItemPickup_Doll_S").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[110] = true;
+                        }
+                        return true;
+                    case 111:
+                        if (!storage.BooleanList[111])
+                        {
+                            GameObject Chunk = GameObject.Find("Glass Cage Room").transform.Find("Chunk").Find("ItemPickup_RingSerpent").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[111] = true;
+                        }
+                        return true;
+                    case 112:
+                        if (!storage.BooleanList[112])
+                        {
+                            GameObject Chunk = GameObject.Find("Radio Room").transform.Find("Chunk").Find("ItemPickup_Incense").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[112] = true;
+                        }
+                        return true;
+                    case 113:
+                        if (!storage.BooleanList[113])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_Shrine").Find("LAB_Joss").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.SetActive(true);
+                            storage.BooleanList[113] = true;
+                        }
+                        return true;
+                    case 114:
+                        if (!storage.BooleanList[114])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_RingsLogic").Find("Pivot").Find("Pickup Plate Knowledge").Find("Plate").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[114] = true;
+                        }
+                        return true;
+                    case 115:
+                        if (!storage.BooleanList[115])
+                        {
+                            GameObject Chunk = GameObject.Find("Torture Room").transform.Find("Chunk").Find("ItemPickup_Doll_M").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[115] = true;
+                        }
+                        return true;
+                    case 116:
+                        if (!storage.BooleanList[116])
+                        {
+                            GameObject Chunk = GameObject.Find("Sacrifice").transform.Find("Chunk").Find("ItemPickup_PlateSacrifice").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[116] = true;
+                        }
+                        return true;
+                    case 117:
+                        if (!storage.BooleanList[117])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_Waage").Find("Pivot").Find("LAB_Waage_Top").Find("Pickup BMS").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[117] = true;
+                        }
+                        return true;
+                    case 118:
+                        if (!storage.BooleanList[118])
+                        {
+                            LAB_Rings Chunk = GameObject.Find("Events").transform.Find("LAB_RingsLogic").Find("LAB_RingsLogic").gameObject.GetComponent<LAB_Rings>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.revealFace();
+                            Chunk.solved = true;
+                            storage.BooleanList[118] = true;
+                        }
+                        return true;
+                    case 119:
+                        if (!storage.BooleanList[119])
+                        {
+                            GameObject Chunk = GameObject.Find("Events").transform.Find("LAB_RingsLogic").Find("Pivot").Find("Pickup Plate Knowledge").Find("Plate").gameObject;
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.GetComponent<ItemPickup>().pickUp();
+                            storage.BooleanList[119] = true;
+                        }
+                        return true;
+                    case 120:
+                        if (!storage.BooleanList[120])
+                        {
+                            LAB_MultiLock Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject.GetComponent<LAB_MultiLock>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.Earth = true;
+                            storage.BooleanList[120] = true;
+                        }
+                        return true;
+                    case 121:
+                        if (!storage.BooleanList[121])
+                        {
+                            LAB_MultiLock Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject.GetComponent<LAB_MultiLock>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.Air = true;
+                            storage.BooleanList[121] = true;
+                        }
+                        return true;
+                    case 122:
+                        if (!storage.BooleanList[122])
+                        {
+                            LAB_MultiLock Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject.GetComponent<LAB_MultiLock>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.Fire = true;
+                            storage.BooleanList[122] = true;
+                        }
+                        return true;
+                    case 123:
+                        if (!storage.BooleanList[123])
+                        {
+                            LAB_MultiLock Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject.GetComponent<LAB_MultiLock>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.Water = true;
+                            storage.BooleanList[123] = true;
+                        }
+                        return true;
+                    case 124:
+                        if (!storage.BooleanList[124])
+                        {
+                            LAB_MultiLock Chunk = GameObject.Find("Tree of Life").transform.Find("Chunk").gameObject.GetComponent<LAB_MultiLock>();
+                            if (Chunk == null)
+                            {
+                                storage.BooleanQueue.Add(message);
+                                return false;
+                            }
+                            Chunk.Gold = true;
+                            storage.BooleanList[124] = true;
+                        }
+                        return true;
                     default:
                         return false;
                 }
